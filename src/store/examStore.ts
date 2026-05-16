@@ -1,0 +1,224 @@
+import { create } from 'zustand';
+import type { Exam, Question } from '../types/ExamSchema';
+
+export type ExamPhase = 'directions' | 'exam' | 'check' | 'break' | 'done';
+
+interface ExamState {
+  // ── Exam Data ──
+  exam: Exam | null;
+  studentName: string;
+
+  // ── Navigation ──
+  currentSectionIndex: number;
+  currentQuestionIndex: number;
+  phase: ExamPhase;
+
+  // ── Answers & Flags ──
+  answers: Record<string, string>;          // questionId -> answerId
+  flagged: Record<string, boolean>;         // questionId -> true
+  eliminated: Record<string, string[]>;     // questionId -> [optionId, ...]
+
+  // ── Timer ──
+  timerSeconds: number;
+  timerRunning: boolean;
+  timerHidden: boolean;
+
+  // ── Navigation Modal ──
+  navModalOpen: boolean;
+
+  // ── Actions ──
+  loadExam: (exam: Exam, studentName: string) => void;
+  setPhase: (phase: ExamPhase) => void;
+
+  // Question Navigation
+  goToQuestion: (index: number) => void;
+  nextQuestion: () => void;
+  prevQuestion: () => void;
+
+  // Answer Management
+  selectAnswer: (questionId: string, optionId: string) => void;
+  toggleFlag: (questionId: string) => void;
+  toggleEliminate: (questionId: string, optionId: string) => void;
+
+  // Timer
+  tickTimer: () => void;
+  toggleTimerHidden: () => void;
+  startTimer: () => void;
+  pauseTimer: () => void;
+
+  // Section Navigation
+  nextSection: () => void;
+
+  // Nav Modal
+  toggleNavModal: () => void;
+  closeNavModal: () => void;
+
+  // Helpers
+  getCurrentSection: () => Exam['sections'][0] | null;
+  getCurrentQuestion: () => Question | null;
+  getSectionQuestionCount: () => number;
+  getAnsweredCount: () => number;
+  getFlaggedCount: () => number;
+}
+
+export const useExamStore = create<ExamState>((set, get) => ({
+  exam: null,
+  studentName: 'Ben Baumgartner',
+  currentSectionIndex: 0,
+  currentQuestionIndex: 0,
+  phase: 'directions',
+  answers: {},
+  flagged: {},
+  eliminated: {},
+  timerSeconds: 0,
+  timerRunning: false,
+  timerHidden: false,
+  navModalOpen: false,
+
+  loadExam: (exam, studentName) => {
+    const firstSection = exam.sections[0];
+    set({
+      exam,
+      studentName,
+      currentSectionIndex: 0,
+      currentQuestionIndex: 0,
+      phase: 'directions',
+      answers: {},
+      flagged: {},
+      eliminated: {},
+      timerSeconds: firstSection.timeMinutes * 60,
+      timerRunning: false,
+      timerHidden: false,
+      navModalOpen: false,
+    });
+  },
+
+  setPhase: (phase) => set({ phase }),
+
+  goToQuestion: (index) => {
+    const section = get().getCurrentSection();
+    if (section && index >= 0 && index < section.questions.length) {
+      set({ currentQuestionIndex: index, navModalOpen: false });
+    }
+  },
+
+  nextQuestion: () => {
+    const state = get();
+    const section = state.getCurrentSection();
+    if (!section) return;
+    if (state.currentQuestionIndex < section.questions.length - 1) {
+      set({ currentQuestionIndex: state.currentQuestionIndex + 1 });
+    } else {
+      // Last question → go to Check Your Work
+      set({ phase: 'check', timerRunning: false });
+    }
+  },
+
+  prevQuestion: () => {
+    const state = get();
+    if (state.currentQuestionIndex > 0) {
+      set({ currentQuestionIndex: state.currentQuestionIndex - 1 });
+    }
+  },
+
+  selectAnswer: (questionId, optionId) => {
+    const state = get();
+    const current = state.answers[questionId];
+    if (current === optionId) {
+      // Deselect
+      const newAnswers = { ...state.answers };
+      delete newAnswers[questionId];
+      set({ answers: newAnswers });
+    } else {
+      set({ answers: { ...state.answers, [questionId]: optionId } });
+    }
+  },
+
+  toggleFlag: (questionId) => {
+    const state = get();
+    set({
+      flagged: {
+        ...state.flagged,
+        [questionId]: !state.flagged[questionId],
+      },
+    });
+  },
+
+  toggleEliminate: (questionId, optionId) => {
+    const state = get();
+    const current = state.eliminated[questionId] || [];
+    const newEliminated = current.includes(optionId)
+      ? current.filter((id) => id !== optionId)
+      : [...current, optionId];
+    set({
+      eliminated: { ...state.eliminated, [questionId]: newEliminated },
+    });
+  },
+
+  tickTimer: () => {
+    const state = get();
+    if (state.timerRunning && state.timerSeconds > 0) {
+      set({ timerSeconds: state.timerSeconds - 1 });
+    } else if (state.timerSeconds === 0 && state.timerRunning) {
+      set({ timerRunning: false, phase: 'check' });
+    }
+  },
+
+  toggleTimerHidden: () => set({ timerHidden: !get().timerHidden }),
+  startTimer: () => set({ timerRunning: true }),
+  pauseTimer: () => set({ timerRunning: false }),
+
+  nextSection: () => {
+    const state = get();
+    if (!state.exam) return;
+    const nextIdx = state.currentSectionIndex + 1;
+    if (nextIdx < state.exam.sections.length) {
+      const nextSection = state.exam.sections[nextIdx];
+      set({
+        currentSectionIndex: nextIdx,
+        currentQuestionIndex: 0,
+        phase: 'break',
+        timerSeconds: nextSection.timeMinutes * 60,
+        timerRunning: false,
+        navModalOpen: false,
+      });
+    } else {
+      set({ phase: 'done' });
+    }
+  },
+
+  toggleNavModal: () => set({ navModalOpen: !get().navModalOpen }),
+  closeNavModal: () => set({ navModalOpen: false }),
+
+  getCurrentSection: () => {
+    const state = get();
+    if (!state.exam) return null;
+    return state.exam.sections[state.currentSectionIndex] || null;
+  },
+
+  getCurrentQuestion: () => {
+    const state = get();
+    const section = state.getCurrentSection();
+    if (!section) return null;
+    return section.questions[state.currentQuestionIndex] || null;
+  },
+
+  getSectionQuestionCount: () => {
+    const section = get().getCurrentSection();
+    return section ? section.questions.length : 0;
+  },
+
+  getAnsweredCount: () => {
+    const state = get();
+    const section = state.getCurrentSection();
+    if (!section) return 0;
+    return section.questions.filter((q) => state.answers[q.id]).length;
+  },
+
+  getFlaggedCount: () => {
+    const state = get();
+    const section = state.getCurrentSection();
+    if (!section) return 0;
+    return section.questions.filter((q) => state.flagged[q.id]).length;
+  },
+}));
