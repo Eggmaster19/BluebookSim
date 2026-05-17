@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useExamStore } from '../../store/examStore';
 import { generateDirections } from '../../data/common/directionsTemplate';
 import { AI_PROMPTS } from '../../data/common/aiPrompts';

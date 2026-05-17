@@ -257,7 +257,6 @@ html, body, #root {
 .bb-split__divider {
   width: 10px;
   background: var(--bb-border-light);
-  cursor: col-resize;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -265,19 +264,6 @@ html, body, #root {
   position: relative;
   border-left: 1px solid var(--bb-border);
   border-right: 1px solid var(--bb-border);
-}
-
-.bb-split__divider-handle {
-  width: 16px;
-  height: 32px;
-  background: var(--bb-border);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: var(--bb-text-muted);
-  cursor: col-resize;
 }
 
 /* ═══ QUESTION BLOCK ══════════════════════════════════════════════ */

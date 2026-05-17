@@ -38,9 +38,7 @@ export const ExamScreen: React.FC = () => {
             )}
           </div>
 
-          <div className="bb-split__divider">
-            <div className="bb-split__divider-handle">⋮</div>
-          </div>
+          <div className="bb-split__divider" />
 
           <div className="bb-split__pane bb-split__pane--right">
             {question.questionType === 'mcq' ? (
