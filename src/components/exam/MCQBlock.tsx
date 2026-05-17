@@ -51,11 +51,9 @@ export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
             <div
               key={option.id}
               className={`bb-option ${isSelected ? 'bb-option--selected' : ''} ${isEliminated ? 'bb-option--eliminated' : ''}`}
+              onClick={() => selectAnswer(question.id, option.id)}
             >
-              <div
-                className="bb-option__box"
-                onClick={() => selectAnswer(question.id, option.id)}
-              >
+              <div className="bb-option__box">
                 <span className="bb-option__letter">{option.id}</span>
                 <span className="bb-option__text">
                   <KaTeXRenderer text={option.text} />
@@ -63,7 +61,10 @@ export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
               </div>
               <button
                 className={`bb-option__eliminator ${isEliminated ? 'bb-option__eliminator--active' : ''}`}
-                onClick={() => toggleEliminate(question.id, option.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleEliminate(question.id, option.id);
+                }}
                 title={`Eliminate option ${option.id}`}
               >
                 <span>{option.id}</span>

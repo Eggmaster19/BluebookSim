@@ -403,7 +403,11 @@ html, body, #root {
 
 .bb-option--selected .bb-option__box {
   border-color: var(--bb-blue-btn);
-  background: var(--bb-blue-light);
+  background: var(--bb-blue-btn);
+}
+
+.bb-option--selected .bb-option__text {
+  color: var(--bb-text-white);
 }
 
 .bb-option--eliminated .bb-option__box {

@@ -63,7 +63,7 @@ interface ExamState {
 
 export const useExamStore = create<ExamState>((set, get) => ({
   exam: null,
-  studentName: 'Ben Baumgartner',
+  studentName: 'Isaac Newton',
   currentSectionIndex: 0,
   currentQuestionIndex: 0,
   phase: 'directions',

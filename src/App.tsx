@@ -4,7 +4,7 @@ import { mockCalculusExam } from './data/mockExam';
 
 // Layout
 import { Header } from './components/layout/Header';
-import { WarningBanner } from './components/layout/WarningBanner';
+
 import { Footer } from './components/layout/Footer';
 
 // Screens
@@ -30,7 +30,7 @@ const App: React.FC = () => {
   // Load mock exam on mount
   useEffect(() => {
     if (!exam) {
-      loadExam(mockCalculusExam, 'Ben Baumgartner');
+      loadExam(mockCalculusExam, 'Isaac Newton');
     }
   }, [exam, loadExam]);
 
@@ -66,8 +66,6 @@ const App: React.FC = () => {
       {/* ── Header (always visible in directions, exam, check) ── */}
       <Header />
 
-      {/* ── Warning Banner ── */}
-      <WarningBanner />
 
       {/* ── Main Content ── */}
       {phase === 'directions' && <DirectionsScreen />}
