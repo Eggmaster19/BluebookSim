@@ -42,6 +42,13 @@ export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
         <KaTeXRenderer text={question.text} />
       </div>
 
+      {/* ── Options Stimulus (for grouped option images) ── */}
+      {question.optionsStimulus && (
+        <div className="bb-question-options-stimulus" style={{ margin: '16px 0' }}>
+          {renderStimulus(question.optionsStimulus)}
+        </div>
+      )}
+
       {/* ── Options ── */}
       <div className="bb-options">
         {question.options.map((option) => {

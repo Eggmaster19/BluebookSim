@@ -9,7 +9,7 @@ interface FunctionPlotConfig {
 }
 
 interface FunctionPlotRendererProps {
-  data: string; // JSON string of FunctionPlotConfig or array of FunctionPlotConfig
+  data: string | Record<string, unknown>; // JSON string or object of FunctionPlotConfig
 }
 
 /**
@@ -34,10 +34,14 @@ export const FunctionPlotRenderer: React.FC<FunctionPlotRendererProps> = ({ data
         const functionPlot = (await import('function-plot')).default;
 
         let config: FunctionPlotConfig | FunctionPlotConfig[];
-        try {
-          config = JSON.parse(data);
-        } catch {
-          throw new Error('Invalid function-plot JSON data');
+        if (typeof data === 'string') {
+          try {
+            config = JSON.parse(data);
+          } catch {
+            throw new Error('Invalid function-plot JSON data');
+          }
+        } else {
+          config = data as FunctionPlotConfig;
         }
 
         // Normalize to array

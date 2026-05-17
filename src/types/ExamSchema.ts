@@ -3,7 +3,7 @@ export type StimulusType = 'text' | 'katex' | 'function-plot' | 'mermaid' | 'svg
 
 export interface Stimulus {
   type: StimulusType;
-  data: string;
+  data: string | Record<string, unknown>;
 }
 
 // ── Answer Option ───────────────────────────────────────────────────
@@ -19,6 +19,7 @@ export interface MCQuestion {
   questionType: 'mcq';
   stimulus?: Stimulus;
   text: string;
+  optionsStimulus?: Stimulus;
   options: AnswerOption[];
   correctAnswer: string;
   explanation?: string;

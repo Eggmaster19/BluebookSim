@@ -72,9 +72,9 @@ export function renderStimulus(stimulus: Stimulus) {
   }
 }
 
-function renderTable(jsonStr: string) {
+function renderTable(data: string | Record<string, unknown>) {
   try {
-    const tableData = JSON.parse(jsonStr);
+    const tableData = typeof data === 'string' ? JSON.parse(data) : data;
     const { headers, rows } = tableData as {
       headers: string[];
       rows: string[][];
