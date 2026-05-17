@@ -33,7 +33,7 @@ export const NavigationModal: React.FC = () => {
             <span>Unanswered</span>
           </div>
           <div className="bb-nav-modal__legend-item">
-            <span className="bb-nav-modal__legend-icon--flagged">🚩</span>
+            <span className="bb-nav-modal__legend-icon--flagged" />
             <span>For Review</span>
           </div>
         </div>

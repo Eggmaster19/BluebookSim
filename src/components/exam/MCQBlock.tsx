@@ -3,15 +3,17 @@ import type { MCQuestion } from '../../types/ExamSchema';
 import { useExamStore } from '../../store/examStore';
 import { KaTeXRenderer } from '../KaTeXRenderer';
 import { renderStimulus } from './StimulusRenderer';
-import { Flag } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
 
 interface MCQBlockProps {
   question: MCQuestion;
 }
 
 export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
-  const { answers, flagged, eliminated, selectAnswer, toggleFlag, toggleEliminate } =
-    useExamStore();
+  const { 
+    answers, flagged, eliminated, eliminatorMode, 
+    selectAnswer, toggleFlag, toggleEliminate, toggleEliminatorMode 
+  } = useExamStore();
 
   const selectedAnswer = answers[question.id];
   const isFlagged = flagged[question.id];
@@ -27,14 +29,18 @@ export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
           className={`bb-question-flag ${isFlagged ? 'bb-question-flag--active' : ''}`}
           onClick={() => toggleFlag(question.id)}
         >
-          <Flag size={16} />
+          <Bookmark size={16} />
           Mark for Review
         </button>
         <span className="bb-question-header__spacer" />
         {/* Dashed line is done via border-bottom on bb-question-header */}
-        <span className="bb-question-abc" title="Answer Eliminator">
+        <button 
+          className={`bb-question-abc ${eliminatorMode ? 'bb-question-abc--active' : ''}`} 
+          title="Answer Eliminator"
+          onClick={toggleEliminatorMode}
+        >
           ABC
-        </span>
+        </button>
       </div>
 
       {/* ── Question Text ── */}
@@ -71,17 +77,19 @@ export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
                   )}
                 </span>
               </div>
-              <button
-                className={`bb-option__eliminator ${isEliminated ? 'bb-option__eliminator--active' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleEliminate(question.id, option.id);
-                }}
-                title={`Eliminate option ${option.id}`}
-              >
-                <span>{option.id}</span>
-                <span className="bb-option__eliminator-line" />
-              </button>
+              {eliminatorMode && (
+                <button
+                  className={`bb-option__eliminator ${isEliminated ? 'bb-option__eliminator--active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleEliminate(question.id, option.id);
+                  }}
+                  title={`Eliminate option ${option.id}`}
+                >
+                  <span>{option.id}</span>
+                  <span className="bb-option__eliminator-line" />
+                </button>
+              )}
             </div>
           );
         })}

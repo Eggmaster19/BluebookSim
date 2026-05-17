@@ -327,9 +327,10 @@ html, body, #root {
   justify-content: center;
   width: 28px;
   height: 28px;
+  border: 1.5px solid var(--bb-blue-btn);
   border-radius: 4px;
-  background: var(--bb-blue-btn);
-  color: var(--bb-text-white);
+  background: var(--bb-bg);
+  color: var(--bb-blue-btn);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -344,8 +345,17 @@ html, body, #root {
   left: 2px;
   right: 2px;
   height: 2px;
-  background: var(--bb-text-white);
+  background: var(--bb-blue-btn);
   transform: rotate(-45deg);
+}
+
+.bb-question-abc--active {
+  background: var(--bb-blue-btn);
+  color: var(--bb-text-white);
+}
+
+.bb-question-abc--active::after {
+  background: var(--bb-text-white);
 }
 
 .bb-question-text {
@@ -389,11 +399,12 @@ html, body, #root {
 
 .bb-option--selected .bb-option__box {
   border-color: var(--bb-blue-btn);
-  background: var(--bb-blue-btn);
+  background: var(--bb-bg);
+  box-shadow: 0 0 0 1px var(--bb-blue-btn);
 }
 
 .bb-option--selected .bb-option__text {
-  color: var(--bb-text-white);
+  color: var(--bb-text);
 }
 
 .bb-option--eliminated .bb-option__box {
@@ -707,9 +718,11 @@ html, body, #root {
 }
 
 .bb-nav-modal__legend-icon--flagged {
-  width: 12px;
-  height: 12px;
-  color: var(--bb-red-text);
+  display: inline-block;
+  width: 10px;
+  height: 14px;
+  background: var(--bb-red-text);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 3px), 0 100%);
 }
 
 .bb-nav-modal__grid {
@@ -740,9 +753,9 @@ html, body, #root {
 }
 
 .bb-nav-modal__item--answered {
-  border: 1.5px solid var(--bb-blue-btn);
-  color: var(--bb-blue-btn);
-  background: var(--bb-bg);
+  border: none;
+  color: var(--bb-text-white);
+  background: var(--bb-blue-btn);
 }
 
 .bb-nav-modal__item--current::before {
@@ -755,11 +768,15 @@ html, body, #root {
 }
 
 .bb-nav-modal__item--flagged::after {
-  content: '🚩';
+  content: '';
   position: absolute;
-  top: -4px;
-  right: -4px;
-  font-size: 8px;
+  top: -2px;
+  right: 4px;
+  width: 10px;
+  height: 14px;
+  background: var(--bb-red-text);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 3px), 0 100%);
+  z-index: 2;
 }
 
 .bb-nav-modal__item:hover {

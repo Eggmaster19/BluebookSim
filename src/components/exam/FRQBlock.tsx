@@ -3,7 +3,7 @@ import type { FRQuestion } from '../../types/ExamSchema';
 import { useExamStore } from '../../store/examStore';
 import { KaTeXRenderer } from '../KaTeXRenderer';
 import { StimulusRenderer, renderStimulus } from './StimulusRenderer';
-import { Flag } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
 
 interface FRQBlockProps {
   question: FRQuestion;
@@ -23,7 +23,7 @@ export const FRQBlock: React.FC<FRQBlockProps> = ({ question }) => {
           className={`bb-question-flag ${isFlagged ? 'bb-question-flag--active' : ''}`}
           onClick={() => toggleFlag(question.id)}
         >
-          <Flag size={16} />
+          <Bookmark size={16} />
           Mark for Review
         </button>
         <span className="bb-question-header__spacer" />

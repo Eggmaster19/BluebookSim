@@ -30,6 +30,9 @@ interface ExamState {
   // ── Navigation Modal ──
   navModalOpen: boolean;
 
+  // ── Answer Eliminator Mode ──
+  eliminatorMode: boolean;
+
   // ── Actions ──
   selectExamType: (id: string) => void;
   setImageBlob: (filename: string, blobUrl: string) => void;
@@ -61,6 +64,9 @@ interface ExamState {
   toggleNavModal: () => void;
   closeNavModal: () => void;
 
+  // Eliminator Mode
+  toggleEliminatorMode: () => void;
+
   // Helpers
   getCurrentSection: () => Exam['sections'][0] | null;
   getCurrentQuestion: () => Question | null;
@@ -84,6 +90,7 @@ export const useExamStore = create<ExamState>((set, get) => ({
   timerRunning: false,
   timerHidden: false,
   navModalOpen: false,
+  eliminatorMode: false,
 
   selectExamType: (id) => set({ selectedExamType: id }),
 
@@ -151,15 +158,8 @@ export const useExamStore = create<ExamState>((set, get) => ({
 
   selectAnswer: (questionId, optionId) => {
     const state = get();
-    const current = state.answers[questionId];
-    if (current === optionId) {
-      // Deselect
-      const newAnswers = { ...state.answers };
-      delete newAnswers[questionId];
-      set({ answers: newAnswers });
-    } else {
-      set({ answers: { ...state.answers, [questionId]: optionId } });
-    }
+    // Do not deselect if clicking the already selected option
+    set({ answers: { ...state.answers, [questionId]: optionId } });
   },
 
   toggleFlag: (questionId) => {
@@ -175,11 +175,21 @@ export const useExamStore = create<ExamState>((set, get) => ({
   toggleEliminate: (questionId, optionId) => {
     const state = get();
     const current = state.eliminated[questionId] || [];
-    const newEliminated = current.includes(optionId)
-      ? current.filter((id) => id !== optionId)
-      : [...current, optionId];
+    const isEliminating = !current.includes(optionId);
+    
+    const newEliminated = isEliminating
+      ? [...current, optionId]
+      : current.filter((id) => id !== optionId);
+      
+    // If we are eliminating the currently selected answer, deselect it
+    const newAnswers = { ...state.answers };
+    if (isEliminating && state.answers[questionId] === optionId) {
+      delete newAnswers[questionId];
+    }
+
     set({
       eliminated: { ...state.eliminated, [questionId]: newEliminated },
+      answers: newAnswers,
     });
   },
 
@@ -217,6 +227,8 @@ export const useExamStore = create<ExamState>((set, get) => ({
 
   toggleNavModal: () => set({ navModalOpen: !get().navModalOpen }),
   closeNavModal: () => set({ navModalOpen: false }),
+
+  toggleEliminatorMode: () => set({ eliminatorMode: !get().eliminatorMode }),
 
   getCurrentSection: () => {
     const state = get();

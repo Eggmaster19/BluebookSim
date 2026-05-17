@@ -9,6 +9,7 @@ import '../../styles/bluebook.css';
 const EXAM_META: Record<string, { label: string; title: string; examType: string; subject: string; studentName: string }> = {
   calc_ab: { label: 'calc ab', title: 'AP Calculus AB Practice', examType: 'AP', subject: 'Calculus AB', studentName: 'Isaac Newton' },
   bio: { label: 'bio', title: 'AP Biology Practice', examType: 'AP', subject: 'Biology', studentName: 'Gregor Mendel' },
+  test: { label: 'test', title: 'Simulator Test', examType: 'TEST', subject: 'Testing', studentName: 'Ben Baumgartner' },
 };
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
@@ -334,7 +335,32 @@ export const JsonInputScreen: React.FC = () => {
 
         {/* ── Right: Image Dropzone ── */}
         <div className="json-input-right">
-          <label className="json-input-label">images</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <label className="json-input-label" style={{ marginBottom: 0 }}>images</label>
+            {examType === 'test' && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button 
+                  className="bb-footer__btn"
+                  style={{ background: '#eee', color: '#333', fontSize: 12, padding: '4px 12px' }}
+                  onClick={() => setJsonText(JSON.stringify([{
+                    id: "1", text: "Test question 1?", options: [{id: "A", text: "Yes"}, {id: "B", text: "No"}], correctAnswer: "A"
+                  }], null, 2))}
+                >
+                  Load Test
+                </button>
+                <button 
+                  className="bb-footer__btn"
+                  style={{ background: '#eee', color: '#333', fontSize: 12, padding: '4px 12px' }}
+                  onClick={() => setJsonText(JSON.stringify([
+                    { id: "1", text: "Test question 1?", options: [{id: "A", text: "Yes"}, {id: "B", text: "No"}], correctAnswer: "A" },
+                    { id: "2", stimulus: { type: "image", data: "test_image.png" }, text: "What is this image?", options: [{id: "A", text: "Image"}, {id: "B", text: "Text"}], correctAnswer: "A" }
+                  ], null, 2))}
+                >
+                  + Add Image
+                </button>
+              </div>
+            )}
+          </div>
           {requiredImages.length === 0 ? (
             <div className="json-input-no-images">
               {jsonText.trim()
