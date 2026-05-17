@@ -1078,7 +1078,6 @@ html, body, #root {
   font-size: 20px;
   cursor: pointer;
   border-radius: 4px;
-  transition: opacity 0.2s;
 }
 
 .next-btn:disabled {
@@ -1088,6 +1087,301 @@ html, body, #root {
   cursor: not-allowed;
 }
 
-.next-btn:not(:disabled):hover {
-  background: rgba(255, 255, 255, 0.1);
+/* ═══ JSON INPUT SCREEN ═══════════════════════════════════════════ */
+.json-input-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: #000000;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── Header ── */
+.json-input-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  gap: 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.json-input-back {
+  background: transparent;
+  color: #888888;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.json-input-exam-label {
+  font-size: 14px;
+  color: #666666;
+  font-weight: 400;
+}
+
+.json-input-header-spacer {
+  flex: 1;
+}
+
+/* ── Instructions ── */
+.json-input-instructions {
+  padding: 14px 24px;
+  font-size: 13px;
+  color: #555555;
+  border-bottom: 1px solid #1a1a1a;
+  flex-shrink: 0;
+}
+
+/* ── Copy Prompt Bar ── */
+.json-input-copy-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #1a1a1a;
+  color: #444444;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Split Layout ── */
+.json-input-split {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.json-input-left,
+.json-input-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.json-input-divider {
+  width: 1px;
+  background: #1a1a1a;
+  flex-shrink: 0;
+}
+
+.json-input-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #555555;
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* ── Textarea ── */
+.json-input-textarea {
+  flex: 1;
+  width: 100%;
+  background: #0a0a0a;
+  color: #cccccc;
+  border: 1px solid #222222;
+  border-radius: 6px;
+  padding: 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+}
+
+.json-input-textarea::placeholder {
+  color: #333333;
+}
+
+.json-input-textarea:focus {
+  border-color: #333333;
+}
+
+/* ── Validation Status ── */
+.json-input-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.json-input-status--valid {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.06);
+}
+
+.json-input-status--error {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.06);
+}
+
+.json-input-status-icon {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ── Image Panel (Right Side) ── */
+.json-input-no-images {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333333;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.json-input-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.json-input-checklist-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.json-input-checklist-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.json-input-checklist-status {
+  font-size: 14px;
+  color: #555555;
+  width: 18px;
+  text-align: center;
+}
+
+.json-input-checklist-status--done {
+  color: #4ade80;
+}
+
+.json-input-checklist-filename {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #999999;
+}
+
+.json-input-checklist-remove {
+  background: transparent;
+  border: none;
+  color: #555555;
+  font-size: 12px;
+  cursor: pointer;
+  margin-left: auto;
+  padding: 2px 6px;
+}
+
+/* ── Dropzone ── */
+.json-input-dropzone {
+  border: 1px dashed #333333;
+  border-radius: 6px;
+  padding: 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.json-input-dropzone:focus {
+  outline: none;
+}
+
+.json-input-dropzone-text {
+  font-size: 12px;
+  color: #444444;
+}
+
+/* ── Thumbnail ── */
+.json-input-thumbnail-wrap {
+  border: 1px solid #222222;
+  border-radius: 6px;
+  overflow: hidden;
+  max-height: 140px;
+}
+
+.json-input-thumbnail {
+  width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+  display: block;
+  background: #0a0a0a;
+}
+
+/* ── Footer ── */
+.json-input-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 14px 24px;
+  border-top: 1px solid #1a1a1a;
+  flex-shrink: 0;
+}
+
+.json-input-meta {
+  font-size: 12px;
+  color: #555555;
+  margin-right: auto;
+}
+
+.json-input-start {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  padding: 6px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+}
+
+.json-input-start:disabled {
+  opacity: 0.2;
+  border-color: #333333;
+  color: #333333;
+  cursor: not-allowed;
+}
+
+/* ═══ MERMAID RENDERER ════════════════════════════════════════════ */
+.bb-mermaid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+  overflow-x: auto;
+}
+
+.bb-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.bb-mermaid--error {
+  color: var(--bb-red-text);
+  font-size: 13px;
+  font-style: italic;
+  background: var(--bb-red-banner);
+  padding: 8px;
+  border-radius: 4px;
 }

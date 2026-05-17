@@ -8,6 +8,10 @@ interface ExamState {
   exam: Exam | null;
   studentName: string;
 
+  // ── JSON Input Flow ──
+  selectedExamType: string | null;          // e.g. 'calc_ab', 'bio'
+  imageBlobs: Record<string, string>;       // JSON filename -> Blob URL
+
   // ── Navigation ──
   currentSectionIndex: number;
   currentQuestionIndex: number;
@@ -27,6 +31,10 @@ interface ExamState {
   navModalOpen: boolean;
 
   // ── Actions ──
+  selectExamType: (id: string) => void;
+  setImageBlob: (filename: string, blobUrl: string) => void;
+  removeImageBlob: (filename: string) => void;
+  clearInputState: () => void;
   loadExam: (exam: Exam, studentName: string) => void;
   setPhase: (phase: ExamPhase) => void;
 
@@ -64,6 +72,8 @@ interface ExamState {
 export const useExamStore = create<ExamState>((set, get) => ({
   exam: null,
   studentName: 'Isaac Newton',
+  selectedExamType: null,
+  imageBlobs: {},
   currentSectionIndex: 0,
   currentQuestionIndex: 0,
   phase: 'directions',
@@ -75,11 +85,29 @@ export const useExamStore = create<ExamState>((set, get) => ({
   timerHidden: false,
   navModalOpen: false,
 
+  selectExamType: (id) => set({ selectedExamType: id }),
+
+  setImageBlob: (filename, blobUrl) => {
+    set({ imageBlobs: { ...get().imageBlobs, [filename]: blobUrl } });
+  },
+
+  removeImageBlob: (filename) => {
+    const blobs = { ...get().imageBlobs };
+    if (blobs[filename]) {
+      URL.revokeObjectURL(blobs[filename]);
+      delete blobs[filename];
+    }
+    set({ imageBlobs: blobs });
+  },
+
+  clearInputState: () => set({ selectedExamType: null, imageBlobs: {} }),
+
   loadExam: (exam, studentName) => {
     const firstSection = exam.sections[0];
     set({
       exam,
       studentName,
+      selectedExamType: null,
       currentSectionIndex: 0,
       currentQuestionIndex: 0,
       phase: 'directions',

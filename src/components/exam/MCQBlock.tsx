@@ -2,6 +2,7 @@ import React from 'react';
 import type { MCQuestion } from '../../types/ExamSchema';
 import { useExamStore } from '../../store/examStore';
 import { KaTeXRenderer } from '../KaTeXRenderer';
+import { renderStimulus } from './StimulusRenderer';
 import { Flag } from 'lucide-react';
 
 interface MCQBlockProps {
@@ -56,7 +57,11 @@ export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
               <div className="bb-option__box">
                 <span className="bb-option__letter">{option.id}</span>
                 <span className="bb-option__text">
-                  <KaTeXRenderer text={option.text} />
+                  {option.type && option.type !== 'text' ? (
+                    renderStimulus({ type: option.type, data: option.text })
+                  ) : (
+                    <KaTeXRenderer text={option.text} />
+                  )}
                 </span>
               </div>
               <button

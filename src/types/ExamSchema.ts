@@ -9,7 +9,8 @@ export interface Stimulus {
 // ── Answer Option ───────────────────────────────────────────────────
 export interface AnswerOption {
   id: string;      // "A", "B", "C", "D"
-  text: string;    // May contain $$katex$$ inline
+  text: string;    // May contain $$katex$$ inline or raw data for complex types
+  type?: StimulusType; // Optional type for rendering complex options (e.g., 'mermaid')
 }
 
 // ── Question Types ──────────────────────────────────────────────────

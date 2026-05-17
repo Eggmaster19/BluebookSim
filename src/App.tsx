@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useExamStore } from './store/examStore';
 import { SelectionScreen } from './components/screens/SelectionScreen';
+import { JsonInputScreen } from './components/screens/JsonInputScreen';
 
 // Layout
 import { Header } from './components/layout/Header';
@@ -21,6 +22,7 @@ import 'katex/dist/katex.min.css';
 const App: React.FC = () => {
   const phase = useExamStore((s) => s.phase);
   const exam = useExamStore((s) => s.exam);
+  const selectedExamType = useExamStore((s) => s.selectedExamType);
   const setPhase = useExamStore((s) => s.setPhase);
   const startTimer = useExamStore((s) => s.startTimer);
   const tickTimer = useExamStore((s) => s.tickTimer);
@@ -37,7 +39,11 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [timerRunning, tickTimer]);
 
+  // ── Pre-exam screens ──
   if (!exam) {
+    if (selectedExamType) {
+      return <JsonInputScreen />;
+    }
     return <SelectionScreen />;
   }
 

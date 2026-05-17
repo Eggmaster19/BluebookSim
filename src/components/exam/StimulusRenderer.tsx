@@ -2,6 +2,7 @@ import React from 'react';
 import type { Stimulus } from '../../types/ExamSchema';
 import { KaTeXRenderer } from '../KaTeXRenderer';
 import { BlockMath } from 'react-katex';
+import { MermaidRenderer } from '../MermaidRenderer';
 
 interface StimulusRendererProps {
   stimulus: Stimulus;
@@ -21,7 +22,7 @@ export const StimulusRenderer: React.FC<StimulusRendererProps> = ({ stimulus, in
   );
 };
 
-function renderStimulus(stimulus: Stimulus) {
+export function renderStimulus(stimulus: Stimulus) {
   switch (stimulus.type) {
     case 'text':
       return (
@@ -39,6 +40,9 @@ function renderStimulus(stimulus: Stimulus) {
 
     case 'table':
       return renderTable(stimulus.data);
+
+    case 'mermaid':
+      return <MermaidRenderer chart={stimulus.data} />;
 
     case 'image':
       return (
