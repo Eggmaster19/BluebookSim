@@ -3,6 +3,8 @@ import type { Stimulus } from '../../types/ExamSchema';
 import { KaTeXRenderer } from '../KaTeXRenderer';
 import { BlockMath } from 'react-katex';
 import { MermaidRenderer } from '../MermaidRenderer';
+import { FunctionPlotRenderer } from '../FunctionPlotRenderer';
+import { SVGRenderer } from '../SVGRenderer';
 
 interface StimulusRendererProps {
   stimulus: Stimulus;
@@ -43,6 +45,12 @@ export function renderStimulus(stimulus: Stimulus) {
 
     case 'mermaid':
       return <MermaidRenderer chart={stimulus.data} />;
+
+    case 'function-plot':
+      return <FunctionPlotRenderer data={stimulus.data} />;
+
+    case 'svg':
+      return <SVGRenderer data={stimulus.data} />;
 
     case 'image':
       return (

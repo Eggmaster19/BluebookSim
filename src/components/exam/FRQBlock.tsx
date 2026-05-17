@@ -2,6 +2,7 @@ import React from 'react';
 import type { FRQuestion } from '../../types/ExamSchema';
 import { useExamStore } from '../../store/examStore';
 import { KaTeXRenderer } from '../KaTeXRenderer';
+import { StimulusRenderer, renderStimulus } from './StimulusRenderer';
 import { Flag } from 'lucide-react';
 
 interface FRQBlockProps {
@@ -34,8 +35,16 @@ export const FRQBlock: React.FC<FRQBlockProps> = ({ question }) => {
         {question.parts.map((part) => (
           <div key={part.partLabel} className="bb-frq-part">
             <span className="bb-frq-part__label">Part {part.partLabel}</span>
+            {/* Render part-level stimulus if present */}
+            {part.stimulus && (
+              <StimulusRenderer stimulus={part.stimulus} />
+            )}
             <div className="bb-frq-part__text">
-              <KaTeXRenderer text={part.text} />
+              {part.type && part.type !== 'text' ? (
+                renderStimulus({ type: part.type, data: part.text })
+              ) : (
+                <KaTeXRenderer text={part.text} />
+              )}
             </div>
           </div>
         ))}
@@ -43,3 +52,4 @@ export const FRQBlock: React.FC<FRQBlockProps> = ({ question }) => {
     </div>
   );
 };
+

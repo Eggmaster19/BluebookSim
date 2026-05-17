@@ -32,6 +32,8 @@ function normalizeQuestion(raw: any, index: number): Question {
       parts: (raw.parts ?? []).map((p: any) => ({
         partLabel: p.partLabel ?? p.part ?? '',
         text: p.text ?? '',
+        ...(p.type && { type: p.type }),
+        ...(p.stimulus && { stimulus: p.stimulus }),
       })),
     };
     if (raw.stimulus) frq.stimulus = raw.stimulus;
@@ -47,6 +49,7 @@ function normalizeQuestion(raw: any, index: number): Question {
     options: (raw.options ?? []).map((o: any) => ({
       id: o.id ?? '',
       text: o.text ?? '',
+      ...(o.type && { type: o.type }),
     })),
     correctAnswer: raw.correctAnswer ?? '',
   };
@@ -285,7 +288,7 @@ export const JsonInputScreen: React.FC = () => {
 
       {/* ── Instructions ── */}
       <div className="json-input-instructions">
-        take your exam questions (pdf, images) and give them to an ai along with the prompt below. paste the result into the left panel.
+        Take your exam questions (pdf, images, etc) and give them to google ai studio along with the prompt below. Paste the result into the left panel, and then paste any images as necessary.
       </div>
 
       {/* ── Copy Prompt Bar ── */}

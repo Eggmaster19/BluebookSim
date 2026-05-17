@@ -1,59 +1,114 @@
 # Bluebook Simulator: AI Conversion Prompts
 
-This document contains the prompt templates and guidelines you will feed into an LLM (like ChatGPT or Claude) to convert physical exam PDFs/images into the exact JSON format required by the Bluebook Simulator.
+This document contains the prompt templates and guidelines you will feed into an LLM (like ChatGPT, Claude, or Google AI Studio) to convert physical exam PDFs/images into the exact JSON format required by the Bluebook Simulator.
 
 ---
 
-## 1. Universal Rules (Apply to All Prompts)
+## 1. Supported Stimulus Types (Rendering Priority)
+
+The simulator supports **six** programmatic rendering types plus image as a fallback. When converting questions, the AI should use the **first type that fits** — `image` is always the **last resort**.
+
+| Priority | Type | Best For | Data Format |
+|----------|------|----------|-------------|
+| 1 | `katex` | Pure math display (piecewise, systems) | Raw LaTeX string (no `$$` wrapper) |
+| 2 | `function-plot` | Simple 2D function graphs | JSON: `{"fn": "x^2", "xDomain": [-5, 5]}` |
+| 3 | `mermaid` | Flowcharts, trees, cladograms, sign charts, xy-charts | Mermaid.js syntax string |
+| 4 | `table` | Data tables, value tables | JSON: `{"headers": [...], "rows": [[...]]}` |
+| 5 | `svg` | Custom labeled diagrams, coordinate planes | Raw SVG markup string |
+| 6 | `image` | Photographs, slope fields, shaded regions | Descriptive filename (e.g., `"original_q76_graph.png"`) |
+
+### Data Format Examples
+
+**function-plot:**
+```json
+{ "type": "function-plot", "data": "{\"fn\": \"x^2 - 4\", \"xDomain\": [-5, 5], \"yDomain\": [-5, 10]}" }
+```
+
+**mermaid (flowchart):**
+```json
+{ "type": "mermaid", "data": "graph TD;\n A[DNA] --> B[RNA];\n B --> C[Protein];" }
+```
+
+**mermaid (line chart):**
+```json
+{ "type": "mermaid", "data": "xychart-beta\n  title \"Enzyme Activity\"\n  x-axis [20, 25, 30, 35, 40, 45]\n  y-axis \"Rate\" 0 --> 100\n  line [10, 30, 65, 90, 45, 15]" }
+```
+
+**table:**
+```json
+{ "type": "table", "data": "{\"headers\":[\"$$x$$\",\"$$0$$\",\"$$1$$\",\"$$2$$\"],\"rows\":[[\"$$f(x)$$\",\"$$3$$\",\"$$5$$\",\"$$7$$\"]]}" }
+```
+
+**svg:**
+```json
+{ "type": "svg", "data": "<svg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"100\" cy=\"100\" r=\"80\" fill=\"none\" stroke=\"black\" stroke-width=\"2\"/><text x=\"100\" y=\"105\" text-anchor=\"middle\" font-size=\"14\">Cell</text></svg>" }
+```
+
+---
+
+## 2. Universal Rules (Apply to All Prompts)
+
 No matter what subject you are converting, the AI must follow these strict rules:
 
-1. **Sequential Numbering:** Completely ignore the question numbers written on the physical exam pages (e.g., if you paste a new section that starts at #1, do not restart your numbering). Number all questions sequentially from `1` to `N` based on the order they are provided.
+1. **Sequential Numbering:** Completely ignore the question numbers written on the physical exam pages. Number all questions sequentially from `1` to `N` based on the order they are provided.
 2. **Strict JSON:** Output *only* valid JSON. Do not include introductory text like "Here is the JSON."
-3. **Image Handling (Crucial):** If a question contains a diagram, anatomical drawing, or complex graph that *cannot* be perfectly replicated using plain text, KaTeX, or Mermaid.js:
-   * Set the stimulus type to `"image"`.
-   * Invent a descriptive, unique filename for the `data` field (e.g., `"data": "calc_q4_slope_field.png"`). 
-   * The Bluebook Simulator will read this and prompt the user to manually screenshot and drop this image into the app.
+3. **Minimize Image Usage:** Always prefer programmatic types (`katex`, `function-plot`, `mermaid`, `table`, `svg`) over `image`. Only use `image` for content that is truly impossible to replicate (photographs, slope fields, shaded regions, anatomical drawings).
+4. **Image Filenames:** When `image` is unavoidable, the filename MUST include the **ORIGINAL** question number from the PDF (e.g., `"original_q76_graph.png"`) so the user can find and screenshot it.
+5. **Complex Answer Options:** MCQ options can also have a `"type"` field (e.g., `"type": "mermaid"`) with diagram syntax in the `"text"` field.
+6. **FRQ Parts:** Each FRQ sub-part can have its own `"stimulus"` or `"type"` field if it contains a diagram specific to that part.
 
 ---
 
-## 2. AP Calculus AB Prompt
+## 3. AP Calculus AB Prompt
 
 **Copy and paste this into the LLM before providing your Calculus exam images/text:**
 
 > You are an expert AP Calculus data processor. I will provide you with images or text from an AP Calculus AB practice exam. Your job is to convert them into a strict JSON array of question objects following these rules:
 > 
-> 1. **Numbering:** Number questions sequentially starting from 1 (ignore the original numbers on the page).
-> 2. **Math Formatting:** All math equations, variables, and numbers must be wrapped in double dollar signs `$$` for KaTeX rendering (e.g., `$$f(x) = x^2$$`, `$$\int_0^5 2x dx$$`).
-> 3. **Graphs:** If the question has a simple 2D function graph (e.g., a parabola), use `"type": "function-plot"` and provide the equation. If the question has a complex visual (like a slope field, solid of revolution, or a shaded area under a curve), use `"type": "image"` and set the data to a descriptive filename (e.g., `"q5_slope_field.png"`).
-> 4. **Output Format:**
+> 1. **Numbering:** Number questions sequentially starting from 1.
+> 2. **Math Formatting:** All math must be wrapped in `$$` for KaTeX rendering.
+> 3. **RENDERING PRIORITY** (use the FIRST type that fits — avoid "image" whenever possible):
+>    - `"katex"` — piecewise functions, systems of equations. Raw LaTeX in `data`.
+>    - `"function-plot"` — simple 2D graphs. JSON in `data`: `{"fn": "x^2", "xDomain": [-5, 5]}`
+>    - `"table"` — value tables. JSON in `data`: `{"headers": [...], "rows": [...]}`
+>    - `"mermaid"` — sign charts, number lines, flowcharts. Mermaid.js syntax.
+>    - `"svg"` — custom coordinate diagrams. Raw SVG markup.
+>    - `"image"` — LAST RESORT. Filename must include original question number.
+> 4. **FRQ Rules:** Use `"questionType": "frq"` with `"parts"` array. Parts can have `"stimulus"` or `"type"`.
+> 5. **Output Format:**
 > ```json
 > {
 >   "id": "1",
->   "stimulus": { "type": "text", "data": "Optional setup text or equation" },
->   "text": "What is the derivative of $$y = \sin(x)$$?",
+>   "stimulus": { "type": "function-plot", "data": "{\"fn\": \"x^2 - 4\", \"xDomain\": [-4, 4]}" },
+>   "text": "The graph of $$f$$ is shown above. At what value of $$x$$ does $$f$$ have a local minimum?",
 >   "options": [
->     { "id": "A", "text": "$$\cos(x)$$" },
->     { "id": "B", "text": "$$-\cos(x)$$" },
->     { "id": "C", "text": "$$\sin(x)$$" },
->     { "id": "D", "text": "$$-\sin(x)$$" }
+>     { "id": "A", "text": "$$-2$$" },
+>     { "id": "B", "text": "$$0$$" },
+>     { "id": "C", "text": "$$2$$" },
+>     { "id": "D", "text": "$$4$$" }
 >   ],
->   "correctAnswer": "A"
+>   "correctAnswer": "B"
 > }
 > ```
-> Output ONLY the JSON array. Do not include any conversational text.
+> Output ONLY the JSON array.
 
 ---
 
-## 3. AP Biology Prompt
+## 4. AP Biology Prompt
 
 **Copy and paste this into the LLM before providing your Biology exam images/text:**
 
 > You are an expert AP Biology data processor. I will provide you with images or text from an AP Biology practice exam. Your job is to convert them into a strict JSON array of question objects following these rules:
 > 
-> 1. **Numbering:** Number questions sequentially starting from 1 (ignore the original numbers on the page).
-> 2. **Pathways & Flowcharts:** If the question contains a biological pathway, food web, or logic flowchart, convert it into Mermaid.js syntax and use `"type": "mermaid"`.
-> 3. **Anatomical Diagrams:** If the question contains an organic/anatomical image (e.g., a picture of a cell, an animal, a gel electrophoresis result), YOU MUST use `"type": "image"` and assign a descriptive filename (e.g., `"q12_chloroplast.png"`). Do NOT try to draw it with text.
-> 4. **Output Format:**
+> 1. **Numbering:** Number questions sequentially starting from 1.
+> 2. **RENDERING PRIORITY** (use the FIRST type that fits — avoid "image" whenever possible):
+>    - `"mermaid"` — pathways, food webs, cladograms, phylogenetic trees (`graph TD`), line graphs (`xychart-beta`).
+>    - `"table"` — data tables, trait matrices. JSON: `{"headers": [...], "rows": [...]}`
+>    - `"svg"` — labeled diagrams needing precise positioning.
+>    - `"image"` — LAST RESORT. Photographs, microscopy, gel results only. Filename must include original question number.
+> 3. **Complex Options:** If answer choices are cladograms or graphs, add `"type": "mermaid"` to the option.
+> 4. **FRQ Rules:** Use `"questionType": "frq"` with `"parts"` array. Parts can have `"stimulus"` or `"type"`.
+> 5. **Output Format:**
 > ```json
 > {
 >   "id": "1",
@@ -61,37 +116,37 @@ No matter what subject you are converting, the AI must follow these strict rules
 >   "text": "Based on the flowchart above, what is the next step?",
 >   "options": [
 >     { "id": "A", "text": "Translation to Protein" },
->     { "id": "B", "text": "Replication" },
->     { "id": "C", "text": "Mutation" },
->     { "id": "D", "text": "Apoptosis" }
+>     { "id": "B", "type": "mermaid", "text": "graph TD;\n C-->D;" }
 >   ],
 >   "correctAnswer": "A"
 > }
 > ```
-> Output ONLY the JSON array. Do not include any conversational text.
+> Output ONLY the JSON array.
 
 ---
 
-## 4. FRQ (Free Response Question) Guidelines
+## 5. FRQ (Free Response Question) Guidelines
 
-FRQs for subjects like Calculus and Chemistry require a different structure than Multiple Choice. Instead of `options`, FRQs usually have multiple sub-parts (A, B, C, D) and require an open text/math input area.
+FRQs for subjects like Calculus and Biology require a different structure than Multiple Choice. Instead of `options`, FRQs have multiple sub-parts (A, B, C, D).
 
 **Add this instruction to your prompt when processing an FRQ section:**
 
 > **FRQ Rules:** You are processing a Free Response Question. 
 > 1. Treat the main scenario/graph as the `"stimulus"`.
-> 2. Treat each sub-part (Part A, Part B, Part C) as a separate JSON object, but keep the same stimulus.
-> 3. Instead of an `"options"` array, use `"type": "frq"`.
-> 4. For AP Chemistry, format chemical formulas using standard KaTeX subscript/superscript (e.g., `$$\text{H}_2\text{O}$$` or `$$\text{Cu}^{2+}$$`).
+> 2. Treat each sub-part (Part A, Part B, Part C) as entries in a `"parts"` array.
+> 3. Set `"questionType"` to `"frq"` instead of providing `"options"`.
+> 4. Each part can have its own `"stimulus"` or `"type"` field if it contains a diagram.
 > 
 > **Example FRQ Output:**
 > ```json
 > {
 >   "id": "1",
->   "part": "A",
->   "stimulus": { "type": "image", "data": "chem_q1_titration_curve.png" },
->   "text": "Based on the titration curve above, what is the pKa of the weak acid?",
->   "type": "frq",
->   "correctAnswer": "The pKa is approximately 4.8, which corresponds to the pH at the half-equivalence point."
+>   "questionType": "frq",
+>   "stimulus": { "type": "table", "data": "{\"headers\":[\"$$t$$\",\"$$0$$\",\"$$2$$\",\"$$4$$\"],\"rows\":[[\"$$R(t)$$\",\"$$2935$$\",\"$$3653$$\",\"$$3442$$\"]]}" },
+>   "text": "The rate at which vehicles cross a bridge is modeled by $$R(t)$$.",
+>   "parts": [
+>     { "partLabel": "A", "text": "Approximate $$R'(3)$$ using the average rate of change." },
+>     { "partLabel": "B", "text": "Use a midpoint sum to approximate $$\\int_0^4 R(t) dt$$." }
+>   ]
 > }
 > ```

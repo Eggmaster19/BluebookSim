@@ -27,6 +27,8 @@ export interface MCQuestion {
 export interface FRQPart {
   partLabel: string;  // "A", "B", "C", "D"
   text: string;
+  type?: StimulusType;   // Optional type for rendering complex part content (e.g., 'mermaid')
+  stimulus?: Stimulus;   // Optional stimulus attached to this specific part
 }
 
 export interface FRQuestion {

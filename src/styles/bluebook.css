@@ -1371,3 +1371,57 @@ html, body, #root {
   padding: 8px;
   border-radius: 4px;
 }
+
+/* ═══ FUNCTION-PLOT RENDERER ═════════════════════════════════════ */
+.bb-function-plot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 12px 0;
+  overflow-x: auto;
+}
+
+.bb-function-plot svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.bb-function-plot .function-plot {
+  margin: 0 auto;
+}
+
+.bb-function-plot--error {
+  color: var(--bb-red-text);
+  font-size: 13px;
+  font-style: italic;
+  background: var(--bb-red-banner);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+/* ═══ SVG RENDERER ═══════════════════════════════════════════════ */
+.bb-svg {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 12px 0;
+  overflow-x: auto;
+}
+
+.bb-svg svg {
+  max-width: 100%;
+  max-height: 400px;
+  height: auto;
+}
+
+.bb-svg--error {
+  color: var(--bb-red-text);
+  font-size: 13px;
+  font-style: italic;
+  background: var(--bb-red-banner);
+  padding: 8px;
+  border-radius: 4px;
+}
+
