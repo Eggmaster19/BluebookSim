@@ -1,6 +1,7 @@
-import type { Exam } from '../types/ExamSchema';
+import type { Exam } from '../../types/ExamSchema';
+import { generateDirections } from '../common/directionsTemplate';
 
-export const mockCalculusExam: Exam = {
+export const calculusABExam: Exam = {
   metadata: {
     title: 'AP Calculus AB Practice',
     examType: 'AP',
@@ -12,15 +13,14 @@ export const mockCalculusExam: Exam = {
       title: 'Section I, Part A - No Calculator Allowed',
       calculatorAllowed: false,
       timeMinutes: 60,
-      directions: `<h1>Section I, Part A - No Calculator Allowed Directions</h1>
-<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day and has fewer multiple-choice questions than the exam.</strong></p>
-<p style="text-align:center">Calculus AB</p>
-<p>Section I, Part A has 30 multiple choice questions and lasts 60 minutes.</p>
-<p><strong>A calculator is not allowed for this part of the exam.</strong></p>
-<p>Solve each problem. You may use the available paper for scratch work. After examining the choices, select the best of the choices given.</p>
-<p>The exact numerical value of the correct answer does not always appear among the choices given. When this happens, select from among the choices the number that best approximates the exact numerical value.</p>
-<p>Unless otherwise specified, the domain of a function <em>f</em> is assumed to be the set of all real numbers <em>x</em> for which <em>f(x)</em> is a real number.</p>
-<p>You can go back and forth between questions in this part until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`,
+      directions: generateDirections({
+        subject: 'Calculus AB',
+        sectionTitle: 'Section I, Part A',
+        questionCount: 30,
+        timeMinutes: 60,
+        calculatorPolicy: 'none',
+        isFRQ: false,
+      }),
       questions: [
         {
           id: 'q1',
@@ -117,13 +117,14 @@ export const mockCalculusExam: Exam = {
       title: 'Section I, Part B - Calculator Required',
       calculatorAllowed: true,
       timeMinutes: 45,
-      directions: `<h1>Section I, Part B - Calculator Required Directions</h1>
-<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day and has fewer multiple-choice questions than the exam.</strong></p>
-<p style="text-align:center">Calculus AB</p>
-<p>Section I, Part B has 15 multiple choice questions and lasts 45 minutes.</p>
-<p><strong>A graphing calculator is required for some questions on this part of the exam.</strong> You may use a handheld calculator or the calculator available in this application. <strong>Make sure your calculator is in radian mode.</strong></p>
-<p>Solve each problem. You may use the available paper for scratch work. After examining the choices, select the best of the choices given.</p>
-<p>You can go back and forth between questions in this part until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`,
+      directions: generateDirections({
+        subject: 'Calculus AB',
+        sectionTitle: 'Section I, Part B',
+        questionCount: 15,
+        timeMinutes: 45,
+        calculatorPolicy: 'required',
+        isFRQ: false,
+      }),
       questions: [
         {
           id: 'q8',
@@ -187,14 +188,14 @@ export const mockCalculusExam: Exam = {
       title: 'Section II, Part A - Calculator Required',
       calculatorAllowed: true,
       timeMinutes: 30,
-      directions: `<h1>Section II, Part A - Calculator Required Directions</h1>
-<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day and has fewer free-response questions than the exam.</strong></p>
-<p style="text-align:center">Calculus AB</p>
-<p>Section II, Part A has 2 free-response questions and lasts 30 minutes.</p>
-<p><strong>A graphing calculator is required for some questions on this part of the exam.</strong></p>
-<p>You may use the available paper for scratch work and planning, but only work written in the free-response booklet will be scored. In the free-response booklet, write your solution to each part of each question in the space provided for that part. For questions that have sub-parts, be sure to label those clearly in your solution. Use a pencil or a pen with black or dark blue ink.</p>
-<p>Show all of your work, even though a question may not explicitly remind you to do so. Clearly label any functions, graphs, tables, or other objects that you use.</p>
-<p>Your work must be expressed in standard mathematical notation rather than calculator syntax. For example, $$\\int_1^5 x^2 dx$$ may not be written as fnInt(X², X, 1, 5).</p>`,
+      directions: generateDirections({
+        subject: 'Calculus AB',
+        sectionTitle: 'Section II, Part A',
+        questionCount: 2,
+        timeMinutes: 30,
+        calculatorPolicy: 'required',
+        isFRQ: true,
+      }),
       questions: [
         {
           id: 'q12',
@@ -233,15 +234,14 @@ export const mockCalculusExam: Exam = {
       title: 'Section II, Part B - No Calculator Allowed',
       calculatorAllowed: false,
       timeMinutes: 60,
-      directions: `<h1>Section II, Part B - No Calculator Allowed Directions</h1>
-<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day and has fewer free-response questions than the exam.</strong></p>
-<p style="text-align:center">Calculus AB</p>
-<p>Section II, Part B has 4 free-response questions and lasts 1 hour.</p>
-<p><strong>A calculator is not allowed for this part of the exam.</strong></p>
-<p>You may use the available paper for scratch work and planning, but only work written in the free-response booklet will be scored.</p>
-<p>Show all of your work, even though a question may not explicitly remind you to do so. Clearly label any functions, graphs, tables, or other objects that you use. Justifications require that you give mathematical reasons and that you verify the needed conditions under which relevant theorems, properties, definitions, or tests are applied. Your work will be scored on the correctness and completeness of your methods as well as your answers. Answers without supporting work will usually not receive credit.</p>
-<p>Your work must be expressed in standard mathematical notation rather than calculator syntax.</p>
-<p>Unless otherwise specified, answers (numeric or algebraic) need not be simplified. If you use decimal approximations in calculations, your work will be scored on accuracy. Unless otherwise specified, your final answers should be accurate to three places after the decimal point.</p>`,
+      directions: generateDirections({
+        subject: 'Calculus AB',
+        sectionTitle: 'Section II, Part B',
+        questionCount: 4,
+        timeMinutes: 60,
+        calculatorPolicy: 'none',
+        isFRQ: true,
+      }),
       questions: [
         {
           id: 'q13',

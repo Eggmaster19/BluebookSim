@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useExamStore } from './store/examStore';
-import { mockCalculusExam } from './data/mockExam';
+import { SelectionScreen } from './components/screens/SelectionScreen';
 
 // Layout
 import { Header } from './components/layout/Header';
@@ -21,18 +21,12 @@ import 'katex/dist/katex.min.css';
 const App: React.FC = () => {
   const phase = useExamStore((s) => s.phase);
   const exam = useExamStore((s) => s.exam);
-  const loadExam = useExamStore((s) => s.loadExam);
   const setPhase = useExamStore((s) => s.setPhase);
   const startTimer = useExamStore((s) => s.startTimer);
   const tickTimer = useExamStore((s) => s.tickTimer);
   const timerRunning = useExamStore((s) => s.timerRunning);
 
-  // Load mock exam on mount
-  useEffect(() => {
-    if (!exam) {
-      loadExam(mockCalculusExam, 'Isaac Newton');
-    }
-  }, [exam, loadExam]);
+  // No longer load mock exam on mount automatically
 
   // Timer tick effect
   useEffect(() => {
@@ -43,7 +37,9 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [timerRunning, tickTimer]);
 
-  if (!exam) return null;
+  if (!exam) {
+    return <SelectionScreen />;
+  }
 
   // ── Break Screen: full takeover (dark mode, no header/footer) ──
   if (phase === 'break') {
