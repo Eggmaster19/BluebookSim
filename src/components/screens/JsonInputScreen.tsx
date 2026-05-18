@@ -586,7 +586,7 @@ export const JsonInputScreen: React.FC = () => {
           </span>
         )}
         <button className="json-input-start" onClick={handleStart} disabled={!canStart}>
-          start exam
+          next →
         </button>
       </div>
     </div>

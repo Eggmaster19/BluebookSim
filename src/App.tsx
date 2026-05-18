@@ -9,6 +9,7 @@ import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 
 // Screens
+import { PreviewScreen } from './components/screens/PreviewScreen';
 import { DirectionsScreen } from './components/screens/DirectionsScreen';
 import { ExamScreen } from './components/screens/ExamScreen';
 import { CheckYourWorkScreen } from './components/screens/CheckYourWorkScreen';
@@ -45,6 +46,11 @@ const App: React.FC = () => {
       return <JsonInputScreen />;
     }
     return <SelectionScreen />;
+  }
+
+  // ── Preview Screen: full takeover (dark mode, no header/footer) ──
+  if (phase === 'preview') {
+    return <PreviewScreen />;
   }
 
   // ── Break Screen: full takeover (dark mode, no header/footer) ──

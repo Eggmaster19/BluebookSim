@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Exam, Question } from '../types/ExamSchema';
 
-export type ExamPhase = 'directions' | 'exam' | 'check' | 'break' | 'done';
+export type ExamPhase = 'preview' | 'directions' | 'exam' | 'check' | 'break' | 'done';
 
 interface ExamState {
   // ── Exam Data ──
@@ -41,6 +41,8 @@ interface ExamState {
   clearInputState: () => void;
   loadExam: (exam: Exam, studentName: string) => void;
   setPhase: (phase: ExamPhase) => void;
+  updateSectionTime: (sectionIndex: number, timeMinutes: number) => void;
+  startExamFromPreview: () => void;
 
   // Question Navigation
   goToQuestion: (index: number) => void;
@@ -118,14 +120,13 @@ export const useExamStore = create<ExamState>((set, get) => ({
     set({
       exam,
       studentName,
-      selectedExamType: null,
       currentSectionIndex: 0,
       currentQuestionIndex: 0,
-      phase: 'directions',
+      phase: 'preview',
       answers: {},
       flagged: {},
       eliminated: {},
-      timerSeconds: firstSection.timeMinutes * 60,
+      timerSeconds: firstSection ? firstSection.timeMinutes * 60 : 0,
       timerRunning: false,
       timerHidden: false,
       breakDuration: 0,
@@ -134,6 +135,29 @@ export const useExamStore = create<ExamState>((set, get) => ({
   },
 
   setPhase: (phase) => set({ phase }),
+
+  updateSectionTime: (sectionIndex, timeMinutes) => {
+    const state = get();
+    if (!state.exam) return;
+    const newSections = [...state.exam.sections];
+    if (newSections[sectionIndex]) {
+      newSections[sectionIndex] = {
+        ...newSections[sectionIndex],
+        timeMinutes,
+      };
+      set({ exam: { ...state.exam, sections: newSections } });
+    }
+  },
+
+  startExamFromPreview: () => {
+    const state = get();
+    if (!state.exam) return;
+    const firstSection = state.exam.sections[0];
+    set({
+      phase: 'directions',
+      timerSeconds: firstSection ? firstSection.timeMinutes * 60 : 0,
+    });
+  },
 
   goToQuestion: (index) => {
     const section = get().getCurrentSection();
