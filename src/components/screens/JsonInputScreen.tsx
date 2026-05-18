@@ -141,6 +141,11 @@ function splitIntoSections(
     const sectionQuestions = tagBuckets[template.sectionTag] ?? [];
     if (sectionQuestions.length === 0) continue;
 
+    // Reassign IDs to be sequentially unique within the section
+    sectionQuestions.forEach((q, idx) => {
+      q.id = `${template.sectionId}-${idx + 1}`;
+    });
+
     // Calculate dynamic background time allocation based on number of questions
     let sectionTime = template.timeMinutes;
     if (examType === 'calc_ab') {
@@ -191,7 +196,18 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
   try {
     parsed = JSON.parse(raw);
   } catch (e: any) {
-    return { ...empty, error: `Invalid JSON: ${e.message}` };
+    // Attempt to handle concatenated JSON arrays (e.g., copied back-to-back)
+    try {
+      const fixedRaw = `[${raw.trim().replace(/\]\s*\[/g, '],[')}]`;
+      const parsedMultiple = JSON.parse(fixedRaw);
+      if (Array.isArray(parsedMultiple) && parsedMultiple.every(Array.isArray)) {
+        parsed = parsedMultiple.flat();
+      } else {
+        throw new Error();
+      }
+    } catch (e2: any) {
+      return { ...empty, error: `Invalid JSON: ${e.message}` };
+    }
   }
 
   const meta = EXAM_META[examType] ?? { label: 'exam', title: 'Practice Exam', examType: 'AP', subject: 'General', studentName: 'Isaac Newton' };
@@ -279,6 +295,11 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
 
       // Fallback: no section config (e.g. 'test') — single section
       const hasFRQ = questions.some((q) => q.questionType === 'frq');
+
+      // Reassign IDs to prevent collisions
+      questions.forEach((q, idx) => {
+        q.id = `section-1-${idx + 1}`;
+      });
 
       const section: ExamSection = {
         id: 'section-1',
@@ -441,7 +462,7 @@ export const JsonInputScreen: React.FC = () => {
 
       {/* ── Instructions ── */}
       <div className="json-input-instructions">
-        Take your exam questions (pdf, images, etc) and give them to google ai studio along with the prompt below. Paste the result into the left panel, and then paste any images as necessary.
+        Take your exam questions (pdf, images, etc) and give them to a good ai along with the prompt below. Paste the result into the left panel, and then paste any images as necessary.
       </div>
 
       {/* ── Copy Prompt Bar ── */}
@@ -506,21 +527,21 @@ export const JsonInputScreen: React.FC = () => {
             <label className="json-input-label" style={{ marginBottom: 0 }}>images</label>
             {examType === 'test' && (
               <div style={{ display: 'flex', gap: 8 }}>
-                <button 
+                <button
                   className="bb-footer__btn"
                   style={{ background: '#eee', color: '#333', fontSize: 12, padding: '4px 12px' }}
                   onClick={() => setJsonText(JSON.stringify([{
-                    id: "1", text: "Test question 1?", options: [{id: "A", text: "Yes"}, {id: "B", text: "No"}], correctAnswer: "A"
+                    id: "1", text: "Test question 1?", options: [{ id: "A", text: "Yes" }, { id: "B", text: "No" }], correctAnswer: "A"
                   }], null, 2))}
                 >
                   Load Test
                 </button>
-                <button 
+                <button
                   className="bb-footer__btn"
                   style={{ background: '#eee', color: '#333', fontSize: 12, padding: '4px 12px' }}
                   onClick={() => setJsonText(JSON.stringify([
-                    { id: "1", text: "Test question 1?", options: [{id: "A", text: "Yes"}, {id: "B", text: "No"}], correctAnswer: "A" },
-                    { id: "2", stimulus: { type: "image", data: "test_image.png" }, text: "What is this image?", options: [{id: "A", text: "Image"}, {id: "B", text: "Text"}], correctAnswer: "A" }
+                    { id: "1", text: "Test question 1?", options: [{ id: "A", text: "Yes" }, { id: "B", text: "No" }], correctAnswer: "A" },
+                    { id: "2", stimulus: { type: "image", data: "test_image.png" }, text: "What is this image?", options: [{ id: "A", text: "Image" }, { id: "B", text: "Text" }], correctAnswer: "A" }
                   ], null, 2))}
                 >
                   + Add Image
