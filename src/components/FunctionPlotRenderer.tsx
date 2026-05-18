@@ -41,7 +41,7 @@ export const FunctionPlotRenderer: React.FC<FunctionPlotRendererProps> = ({ data
             throw new Error('Invalid function-plot JSON data');
           }
         } else {
-          config = data as FunctionPlotConfig;
+          config = data as unknown as FunctionPlotConfig;
         }
 
         // Normalize to array

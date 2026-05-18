@@ -1,23 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useExamStore } from '../../store/examStore';
 
 export const BreakScreen: React.FC = () => {
   const studentName = useExamStore((s) => s.studentName);
   const setPhase = useExamStore((s) => s.setPhase);
-
-  // 10-minute break countdown
-  const [breakSeconds, setBreakSeconds] = useState(10 * 60);
+  const breakDuration = useExamStore((s) => s.breakDuration);
+  const tickBreak = useExamStore((s) => s.tickBreak);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setBreakSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+      tickBreak();
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [tickBreak]);
 
-  const minutes = Math.floor(breakSeconds / 60);
-  const seconds = breakSeconds % 60;
+  const minutes = Math.floor(breakDuration / 60);
+  const seconds = breakDuration % 60;
   const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+  // Short break (≤ 2 min) vs long break (10 min)
+  // Use the initial breakDuration from the store to determine break type
+  // (breakDuration ticks down, but we want the label to stay consistent)
+  const isShortBreak = breakDuration <= 120;
 
   const handleResume = () => {
     setPhase('directions');
@@ -36,10 +40,13 @@ export const BreakScreen: React.FC = () => {
       </div>
 
       <div className="bb-break__right">
-        <h1 className="bb-break__title">Test Preview Break</h1>
+        <h1 className="bb-break__title">
+          {isShortBreak ? 'Short Break' : 'Test Preview Break'}
+        </h1>
         <p className="bb-break__subtitle">
-          You can resume this practice test as soon as you're ready to move on. On test day, you'll
-          wait until the clock counts down. Read below to see how breaks work on test day.
+          {isShortBreak
+            ? 'This is a brief pause between sections. You can resume as soon as you\'re ready.'
+            : 'You can resume this practice test as soon as you\'re ready to move on. On test day, you\'ll wait until the clock counts down. Read below to see how breaks work on test day.'}
         </p>
         <hr style={{ borderColor: '#444', marginBottom: '24px' }} />
         <h2 className="bb-break__rules-title">

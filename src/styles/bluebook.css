@@ -1365,6 +1365,43 @@ html, body, #root {
   cursor: not-allowed;
 }
 
+/* ── Section Breakdown ── */
+.json-input-section-breakdown {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #1a1a1a;
+  border-radius: 6px;
+}
+
+.json-input-section-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  padding: 4px 0;
+}
+
+.json-input-section-tag__name {
+  color: #aaaaaa;
+  font-weight: 500;
+}
+
+.json-input-section-tag__count {
+  color: #666666;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+}
+
+.json-input-section-tag__break {
+  color: #555555;
+  font-size: 10px;
+  margin-left: auto;
+}
+
 /* ═══ MERMAID RENDERER ════════════════════════════════════════════ */
 .bb-mermaid {
   display: flex;

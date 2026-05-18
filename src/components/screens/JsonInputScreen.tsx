@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useExamStore } from '../../store/examStore';
 import { generateDirections } from '../../data/common/directionsTemplate';
 import { AI_PROMPTS } from '../../data/common/aiPrompts';
+import { SECTION_CONFIGS } from '../../data/common/sectionConfig';
 import type { Exam, Question, MCQuestion, FRQuestion, ExamSection } from '../../types/ExamSchema';
 import '../../styles/bluebook.css';
 
@@ -21,12 +22,13 @@ interface ParseResult {
   questionCount: number;
 }
 
-function normalizeQuestion(raw: any, index: number): Question {
+function normalizeQuestion(raw: any, index: number): Question & { _sectionTag?: string } {
   const id = raw.id ?? String(index + 1);
+  const sectionTag = raw.section ?? undefined;
 
   // Detect FRQ
   if (raw.type === 'frq' || raw.questionType === 'frq' || raw.parts) {
-    const frq: FRQuestion = {
+    const frq: FRQuestion & { _sectionTag?: string } = {
       id,
       questionType: 'frq',
       text: raw.text ?? '',
@@ -36,6 +38,7 @@ function normalizeQuestion(raw: any, index: number): Question {
         ...(p.type && { type: p.type }),
         ...(p.stimulus && { stimulus: p.stimulus }),
       })),
+      _sectionTag: sectionTag,
     };
     if (raw.stimulus) frq.stimulus = raw.stimulus;
     if (raw.correctAnswer) frq.correctAnswer = raw.correctAnswer;
@@ -43,7 +46,7 @@ function normalizeQuestion(raw: any, index: number): Question {
   }
 
   // Default: MCQ
-  const mcq: MCQuestion = {
+  const mcq: MCQuestion & { _sectionTag?: string } = {
     id,
     questionType: 'mcq',
     text: raw.text ?? '',
@@ -53,6 +56,7 @@ function normalizeQuestion(raw: any, index: number): Question {
       ...(o.type && { type: o.type }),
     })),
     correctAnswer: raw.correctAnswer ?? '',
+    _sectionTag: sectionTag,
   };
   if (raw.stimulus) mcq.stimulus = raw.stimulus;
   if (raw.explanation) mcq.explanation = raw.explanation;
@@ -63,10 +67,107 @@ function collectImageFilenames(questions: Question[]): string[] {
   const images: string[] = [];
   for (const q of questions) {
     if (q.stimulus?.type === 'image' && q.stimulus.data) {
-      images.push(q.stimulus.data);
+      images.push(q.stimulus.data as string);
     }
   }
   return images;
+}
+
+/**
+ * Split a flat array of questions into exam sections using the section config.
+ * Uses the `_sectionTag` on each question to route it to the correct section.
+ * Questions without a tag are distributed by type (MCQ/FRQ) and split evenly
+ * across matching sections.
+ */
+function splitIntoSections(
+  questions: (Question & { _sectionTag?: string })[],
+  examType: string,
+  meta: typeof EXAM_META[string],
+): ExamSection[] {
+  const config = SECTION_CONFIGS[examType];
+  if (!config) return [];
+
+  // Bucket questions by section tag
+  const tagBuckets: Record<string, Question[]> = {};
+  const untaggedMCQ: Question[] = [];
+  const untaggedFRQ: Question[] = [];
+
+  for (const q of questions) {
+    if (q._sectionTag) {
+      const tag = q._sectionTag.toUpperCase();
+      if (!tagBuckets[tag]) tagBuckets[tag] = [];
+      // Strip _sectionTag before storing
+      const { _sectionTag, ...clean } = q as any;
+      tagBuckets[tag].push(clean);
+    } else {
+      // Strip _sectionTag before storing
+      const { _sectionTag, ...clean } = q as any;
+      if (q.questionType === 'frq') {
+        untaggedFRQ.push(clean);
+      } else {
+        untaggedMCQ.push(clean);
+      }
+    }
+  }
+
+  // Distribute untagged questions evenly across matching sections
+  if (untaggedMCQ.length > 0) {
+    const mcqSections = config.filter((s) => s.questionType === 'mcq');
+    const perSection = Math.ceil(untaggedMCQ.length / mcqSections.length);
+    mcqSections.forEach((sec, i) => {
+      const chunk = untaggedMCQ.slice(i * perSection, (i + 1) * perSection);
+      if (chunk.length > 0) {
+        if (!tagBuckets[sec.sectionTag]) tagBuckets[sec.sectionTag] = [];
+        tagBuckets[sec.sectionTag].push(...chunk);
+      }
+    });
+  }
+
+  if (untaggedFRQ.length > 0) {
+    const frqSections = config.filter((s) => s.questionType === 'frq');
+    const perSection = Math.ceil(untaggedFRQ.length / frqSections.length);
+    frqSections.forEach((sec, i) => {
+      const chunk = untaggedFRQ.slice(i * perSection, (i + 1) * perSection);
+      if (chunk.length > 0) {
+        if (!tagBuckets[sec.sectionTag]) tagBuckets[sec.sectionTag] = [];
+        tagBuckets[sec.sectionTag].push(...chunk);
+      }
+    });
+  }
+
+  // Build ExamSection objects — only include sections that have questions
+  const sections: ExamSection[] = [];
+  for (const template of config) {
+    const sectionQuestions = tagBuckets[template.sectionTag] ?? [];
+    if (sectionQuestions.length === 0) continue;
+
+    sections.push({
+      id: template.sectionId,
+      title: template.title,
+      calculatorAllowed: template.calculatorAllowed,
+      timeMinutes: template.timeMinutes,
+      breakAfterMinutes: template.breakAfterMinutes,
+      directions: generateDirections({
+        subject: meta.subject,
+        sectionTitle: template.title,
+        questionCount: sectionQuestions.length,
+        timeMinutes: template.timeMinutes,
+        calculatorPolicy: template.calculatorPolicy,
+        isFRQ: template.questionType === 'frq',
+      }),
+      questions: sectionQuestions,
+    });
+  }
+
+  // Fix breakAfterMinutes for the actual last section (in case some sections were empty)
+  if (sections.length > 0) {
+    sections[sections.length - 1] = {
+      ...sections[sections.length - 1],
+      breakAfterMinutes: null,
+    };
+  }
+
+  return sections;
 }
 
 function parseJsonInput(raw: string, examType: string): ParseResult {
@@ -93,6 +194,7 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
           title: sec.title ?? `Section ${si + 1}`,
           calculatorAllowed: sec.calculatorAllowed ?? false,
           timeMinutes: sec.timeMinutes ?? 60,
+          breakAfterMinutes: sec.breakAfterMinutes ?? (si < parsed.sections.length - 1 ? 10 : null),
           directions: sec.directions ?? generateDirections({
             subject: meta.subject,
             sectionTitle: sec.title ?? `Section ${si + 1}`,
@@ -135,6 +237,35 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
 
     try {
       const questions = parsed.map((q: any, i: number) => normalizeQuestion(q, i));
+
+      // If a section config exists for this exam type, auto-split into proper sections
+      if (SECTION_CONFIGS[examType]) {
+        const sections = splitIntoSections(questions, examType, meta);
+
+        if (sections.length === 0) {
+          return { ...empty, error: 'No questions matched any configured section. Check question types (mcq/frq).' };
+        }
+
+        const allQuestions = sections.flatMap((s) => s.questions);
+
+        const exam: Exam = {
+          metadata: {
+            title: meta.title,
+            examType: meta.examType,
+            subject: meta.subject,
+          },
+          sections,
+        };
+
+        return {
+          exam,
+          error: null,
+          requiredImages: collectImageFilenames(allQuestions),
+          questionCount: allQuestions.length,
+        };
+      }
+
+      // Fallback: no section config (e.g. 'test') — single section
       const hasFRQ = questions.some((q) => q.questionType === 'frq');
 
       const section: ExamSection = {
@@ -142,6 +273,7 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
         title: `Section I${hasFRQ ? ' - Free Response' : ' - Multiple Choice'}`,
         calculatorAllowed: false,
         timeMinutes: Math.max(30, questions.length * 2), // ~2 min per question, min 30
+        breakAfterMinutes: null,
         directions: generateDirections({
           subject: meta.subject,
           sectionTitle: 'Section I',
@@ -150,7 +282,10 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
           calculatorPolicy: 'none',
           isFRQ: hasFRQ,
         }),
-        questions,
+        questions: questions.map((q) => {
+          const { _sectionTag, ...clean } = q as any;
+          return clean;
+        }),
       };
 
       const exam: Exam = {
@@ -220,8 +355,8 @@ export const JsonInputScreen: React.FC = () => {
     if (requiredImages.length > 0) {
       for (const section of exam.sections) {
         for (const q of section.questions) {
-          if (q.stimulus?.type === 'image' && imageBlobs[q.stimulus.data]) {
-            q.stimulus.data = imageBlobs[q.stimulus.data];
+          if (q.stimulus?.type === 'image' && imageBlobs[q.stimulus.data as string]) {
+            q.stimulus.data = imageBlobs[q.stimulus.data as string];
           }
         }
       }
@@ -274,6 +409,11 @@ export const JsonInputScreen: React.FC = () => {
     }
   };
 
+  // ── Section summary for status bar ──
+  const sectionSummary = exam && exam.sections.length > 1
+    ? exam.sections.map((s) => `${s.title} (${s.questions.length}q)`).join(' → ')
+    : null;
+
   // ── Render ──
 
   return (
@@ -306,7 +446,7 @@ export const JsonInputScreen: React.FC = () => {
             className="json-input-textarea"
             value={jsonText}
             onChange={(e) => setJsonText(e.target.value)}
-            placeholder={'[\n  {\n    "id": "1",\n    "text": "What is ...",\n    "options": [\n      { "id": "A", "text": "..." },\n      { "id": "B", "text": "..." }\n    ],\n    "correctAnswer": "A"\n  }\n]'}
+            placeholder={'[\n  {\n    "id": "1",\n    "section": "1A",\n    "text": "What is ...",\n    "options": [\n      { "id": "A", "text": "..." },\n      { "id": "B", "text": "..." }\n    ],\n    "correctAnswer": "A"\n  }\n]'}
             spellCheck={false}
           />
           {/* Validation Status */}
@@ -322,10 +462,25 @@ export const JsonInputScreen: React.FC = () => {
                   <span className="json-input-status-icon">✓</span>
                   <span>
                     {questionCount} question{questionCount !== 1 ? 's' : ''} parsed
+                    {exam && exam.sections.length > 1 && ` · ${exam.sections.length} sections`}
                     {requiredImages.length > 0 && ` · ${requiredImages.length} image${requiredImages.length !== 1 ? 's' : ''} required`}
                   </span>
                 </>
               )}
+            </div>
+          )}
+          {/* Section breakdown */}
+          {sectionSummary && (
+            <div className="json-input-section-breakdown">
+              {exam!.sections.map((s) => (
+                <div key={s.id} className="json-input-section-tag">
+                  <span className="json-input-section-tag__name">{s.title}</span>
+                  <span className="json-input-section-tag__count">{s.questions.length}q</span>
+                  {s.breakAfterMinutes !== null && (
+                    <span className="json-input-section-tag__break">→ {s.breakAfterMinutes}min break</span>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

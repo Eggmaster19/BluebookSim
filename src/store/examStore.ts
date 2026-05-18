@@ -25,6 +25,7 @@ interface ExamState {
   // ── Timer ──
   timerSeconds: number;
   timerRunning: boolean;
+  breakDuration: number;    // Break countdown in seconds (set by nextSection)
   timerHidden: boolean;
 
   // ── Navigation Modal ──
@@ -56,6 +57,8 @@ interface ExamState {
   toggleTimerHidden: () => void;
   startTimer: () => void;
   pauseTimer: () => void;
+  tickBreak: () => void;
+  getBreakDuration: () => number;
 
   // Section Navigation
   nextSection: () => void;
@@ -89,6 +92,7 @@ export const useExamStore = create<ExamState>((set, get) => ({
   timerSeconds: 0,
   timerRunning: false,
   timerHidden: false,
+  breakDuration: 0,
   navModalOpen: false,
   eliminatorMode: false,
 
@@ -124,6 +128,7 @@ export const useExamStore = create<ExamState>((set, get) => ({
       timerSeconds: firstSection.timeMinutes * 60,
       timerRunning: false,
       timerHidden: false,
+      breakDuration: 0,
       navModalOpen: false,
     });
   },
@@ -176,11 +181,11 @@ export const useExamStore = create<ExamState>((set, get) => ({
     const state = get();
     const current = state.eliminated[questionId] || [];
     const isEliminating = !current.includes(optionId);
-    
+
     const newEliminated = isEliminating
       ? [...current, optionId]
       : current.filter((id) => id !== optionId);
-      
+
     // If we are eliminating the currently selected answer, deselect it
     const newAnswers = { ...state.answers };
     if (isEliminating && state.answers[questionId] === optionId) {
@@ -209,9 +214,11 @@ export const useExamStore = create<ExamState>((set, get) => ({
   nextSection: () => {
     const state = get();
     if (!state.exam) return;
+    const currentSection = state.getCurrentSection();
     const nextIdx = state.currentSectionIndex + 1;
     if (nextIdx < state.exam.sections.length) {
       const nextSection = state.exam.sections[nextIdx];
+      const breakMins = currentSection?.breakAfterMinutes ?? 10;
       set({
         currentSectionIndex: nextIdx,
         currentQuestionIndex: 0,
@@ -219,6 +226,7 @@ export const useExamStore = create<ExamState>((set, get) => ({
         timerSeconds: nextSection.timeMinutes * 60,
         timerRunning: false,
         navModalOpen: false,
+        breakDuration: breakMins * 60,
       });
     } else {
       set({ phase: 'done' });
@@ -229,6 +237,15 @@ export const useExamStore = create<ExamState>((set, get) => ({
   closeNavModal: () => set({ navModalOpen: false }),
 
   toggleEliminatorMode: () => set({ eliminatorMode: !get().eliminatorMode }),
+
+  tickBreak: () => {
+    const state = get();
+    if (state.breakDuration > 0) {
+      set({ breakDuration: state.breakDuration - 1 });
+    }
+  },
+
+  getBreakDuration: () => get().breakDuration,
 
   getCurrentSection: () => {
     const state = get();

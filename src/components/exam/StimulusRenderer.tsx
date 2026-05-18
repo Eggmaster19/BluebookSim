@@ -29,14 +29,14 @@ export function renderStimulus(stimulus: Stimulus) {
     case 'text':
       return (
         <div className="bb-stimulus__intro">
-          <KaTeXRenderer text={stimulus.data} />
+          <KaTeXRenderer text={stimulus.data as string} />
         </div>
       );
 
     case 'katex':
       return (
         <div className="bb-stimulus__katex">
-          <BlockMath math={stimulus.data} />
+          <BlockMath math={stimulus.data as string} />
         </div>
       );
 
@@ -44,19 +44,19 @@ export function renderStimulus(stimulus: Stimulus) {
       return renderTable(stimulus.data);
 
     case 'mermaid':
-      return <MermaidRenderer chart={stimulus.data} />;
+      return <MermaidRenderer chart={stimulus.data as string} />;
 
     case 'function-plot':
       return <FunctionPlotRenderer data={stimulus.data} />;
 
     case 'svg':
-      return <SVGRenderer data={stimulus.data} />;
+      return <SVGRenderer data={stimulus.data as string} />;
 
     case 'image':
       return (
         <div style={{ textAlign: 'center', padding: '16px 0' }}>
           <img
-            src={stimulus.data}
+            src={stimulus.data as string}
             alt="Question diagram"
             style={{ maxWidth: '100%', maxHeight: '300px' }}
           />
@@ -66,7 +66,7 @@ export function renderStimulus(stimulus: Stimulus) {
     default:
       return (
         <div className="bb-stimulus__intro">
-          <KaTeXRenderer text={stimulus.data} />
+          <KaTeXRenderer text={stimulus.data as string} />
         </div>
       );
   }
