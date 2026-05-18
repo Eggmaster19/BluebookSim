@@ -141,17 +141,29 @@ function splitIntoSections(
     const sectionQuestions = tagBuckets[template.sectionTag] ?? [];
     if (sectionQuestions.length === 0) continue;
 
+    // Calculate dynamic background time allocation based on number of questions
+    let sectionTime = template.timeMinutes;
+    if (examType === 'calc_ab') {
+      if (template.sectionTag === '1A') sectionTime = sectionQuestions.length * 2;
+      else if (template.sectionTag === '1B') sectionTime = sectionQuestions.length * 3;
+      else if (template.sectionTag === '2A') sectionTime = sectionQuestions.length * 15;
+      else if (template.sectionTag === '2B') sectionTime = sectionQuestions.length * 15;
+    } else if (examType === 'bio') {
+      if (template.sectionTag === '1') sectionTime = Math.ceil(sectionQuestions.length * 1.5);
+      else if (template.sectionTag === '2') sectionTime = sectionQuestions.length * 15;
+    }
+
     sections.push({
       id: template.sectionId,
       title: template.title,
       calculatorAllowed: template.calculatorAllowed,
-      timeMinutes: template.timeMinutes,
+      timeMinutes: sectionTime,
       breakAfterMinutes: template.breakAfterMinutes,
       directions: generateDirections({
         subject: meta.subject,
         sectionTitle: template.title,
         questionCount: sectionQuestions.length,
-        timeMinutes: template.timeMinutes,
+        timeMinutes: sectionTime,
         calculatorPolicy: template.calculatorPolicy,
         isFRQ: template.questionType === 'frq',
       }),
@@ -571,8 +583,6 @@ export const JsonInputScreen: React.FC = () => {
           <span className="json-input-meta">
             {questionCount} question{questionCount !== 1 ? 's' : ''}
             {exam.sections.length > 1 && ` · ${exam.sections.length} sections`}
-            {' · '}
-            {exam.sections.reduce((t, s) => t + s.timeMinutes, 0)} min
           </span>
         )}
         <button className="json-input-start" onClick={handleStart} disabled={!canStart}>
