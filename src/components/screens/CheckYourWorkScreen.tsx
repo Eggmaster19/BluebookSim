@@ -5,10 +5,13 @@ export const CheckYourWorkScreen: React.FC = () => {
   const section = useExamStore((s) => s.getCurrentSection());
   const answers = useExamStore((s) => s.answers);
   const flagged = useExamStore((s) => s.flagged);
+  const essayResponses = useExamStore((s) => s.essayResponses);
   const goToQuestion = useExamStore((s) => s.goToQuestion);
   const setPhase = useExamStore((s) => s.setPhase);
 
   if (!section) return null;
+
+  const isEssayMode = section.frqMode === 'essay';
 
   return (
     <div className="bb-check">
@@ -37,7 +40,12 @@ export const CheckYourWorkScreen: React.FC = () => {
 
         <div className="bb-nav-modal__grid">
           {section.questions.map((q, i) => {
-            const isAnswered = !!answers[q.id];
+            // For essay FRQs, check essayResponses; for MCQs, check answers
+            let isAnswered = !!answers[q.id];
+            if (!isAnswered && q.questionType === 'frq' && isEssayMode && essayResponses[q.id]) {
+              const text = essayResponses[q.id].replace(/<[^>]*>/g, '').trim();
+              isAnswered = text.length > 0;
+            }
             const isFlagged = !!flagged[q.id];
 
             let className = 'bb-nav-modal__item';

@@ -1009,24 +1009,398 @@ html, body, #root {
 }
 
 /* ═══ DONE SCREEN ═════════════════════════════════════════════════ */
-.bb-done {
+.bb-done-dashboard-container {
+  width: 100%;
+  height: 100vh;
+  background: #000000;
+  color: #ffffff;
+  padding: 48px 24px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+}
+
+.bb-done-dashboard {
+  max-width: 960px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Header */
+.bb-done-header {
+  text-align: center;
+}
+
+.bb-done-header__celebration {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #888888;
+  margin-bottom: 8px;
+}
+
+.bb-done-header__title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.bb-done-header__subtitle {
+  font-size: 16px;
+  color: #888888;
+}
+
+/* Metrics Grid */
+.bb-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.bb-metric-card {
+  background: transparent;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  background: var(--bb-bg);
-  gap: 16px;
+  text-align: center;
+  transition: border-color 0.2s;
 }
 
-.bb-done__title {
-  font-size: 32px;
+.bb-metric-card:hover {
+  border-color: #444444;
+}
+
+.bb-metric-card--accent {
+  border-color: #333333;
+}
+
+.bb-metric-card__value {
+  font-size: 36px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.bb-metric-card--accent .bb-metric-card__value {
+  color: #ffffff;
+}
+
+.bb-metric-card__label {
+  font-size: 13px;
   font-weight: 700;
+  color: #888888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
 }
 
-.bb-done__subtitle {
+.bb-metric-card__sublabel {
+  font-size: 12px;
+  color: #555555;
+}
+
+/* Dashboard Section */
+.bb-dashboard-section {
+  background: transparent;
+  border: 1px solid #222222;
+  border-radius: 12px;
+  padding: 32px;
+}
+
+.bb-section-header {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bb-section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.bb-section-desc {
+  font-size: 14px;
+  color: #888888;
+  line-height: 1.5;
+}
+
+/* Legend */
+.bb-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.bb-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #888888;
+}
+
+.bb-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.bb-legend-dot--green {
+  background-color: #10b981;
+}
+
+.bb-legend-dot--red {
+  background-color: #ef4444;
+}
+
+.bb-legend-dot--blue {
+  background-color: #3b82f6;
+}
+
+.bb-legend-dot--frq {
+  background-color: #4b5563;
+}
+
+/* Graph Wrapper */
+.bb-graph-wrapper {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  height: 320px;
+  margin-top: 24px;
+  position: relative;
+}
+
+.bb-graph-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 250px;
+  padding-bottom: 30px;
+  font-size: 11px;
+  color: #555555;
+  text-align: right;
+  font-family: var(--bb-font-mono);
+}
+
+.bb-graph-scroll-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 100%;
+}
+
+.bb-graph-canvas {
+  display: flex;
+  align-items: flex-end;
+  height: 250px;
+  border-bottom: 1px solid #222222;
+  padding-bottom: 8px;
+  position: relative;
+}
+
+/* Vertical Column for each question */
+.bb-graph-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  position: relative;
+}
+
+.bb-graph-bar-wrap {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+  padding: 0 4px;
+}
+
+/* The actual bar chart columns */
+.bb-graph-bar {
+  width: 24px;
+  border-radius: 2px 2px 0 0;
+  transition: filter 0.2s ease-in-out;
+  cursor: pointer;
+  position: relative;
+}
+
+.bb-graph-bar:hover {
+  filter: brightness(1.2);
+}
+
+.bb-graph-bar--correct {
+  background-color: #10b981;
+}
+
+.bb-graph-bar--incorrect {
+  background-color: #ef4444;
+}
+
+.bb-graph-bar--answered {
+  background-color: #3b82f6;
+}
+
+.bb-graph-bar--unanswered {
+  background-color: transparent;
+  border: 1px dashed #444444;
+  box-sizing: border-box;
+}
+
+.bb-graph-bar--frq {
+  background-color: #4b5563;
+}
+
+.bb-graph-col-label {
+  height: 20px;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #888888;
+  font-family: var(--bb-font-mono);
+}
+
+/* Tooltip design using pure CSS */
+.bb-graph-tooltip {
+  position: absolute;
+  bottom: 105%;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: #0a0a0a;
+  border: 1px solid #333333;
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bb-graph-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #333333 transparent transparent transparent;
+}
+
+.bb-graph-bar:hover .bb-graph-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.bb-graph-tooltip__title {
+  font-weight: 700;
+  border-bottom: 1px solid #222222;
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+  color: #ffffff;
+}
+
+.bb-graph-tooltip__row {
+  line-height: 1.4;
+  color: #888888;
+}
+
+.bb-graph-tooltip__row strong {
+  color: #ffffff;
+}
+
+/* Export Block */
+.bb-export-box {
+  position: relative;
+  border: 1px solid #222222;
+  border-radius: 6px;
+  background-color: #000000;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.bb-export-content {
+  margin: 0;
+  padding: 20px;
+  font-family: var(--bb-font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #ffffff;
+  max-height: 250px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  background-color: #0a0a0a;
+}
+
+.bb-export-btn {
+  width: 100%;
+  padding: 14px;
+  background-color: transparent;
+  color: #ffffff;
+  border: none;
+  border-top: 1px solid #222222;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  text-align: center;
+}
+
+.bb-export-btn:hover {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Actions */
+.bb-done-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.bb-done-btn {
+  padding: 12px 40px;
+  border-radius: 4px;
   font-size: 16px;
-  color: var(--bb-text-secondary);
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, background-color 0.2s, color 0.2s;
+  border: none;
+}
+
+.bb-done-btn--primary {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+}
+
+.bb-done-btn--primary:hover {
+  background: #ffffff;
+  color: #000000;
 }
 
 /* ═══ KATEX OVERRIDES ═════════════════════════════════════════════ */
@@ -1479,3 +1853,151 @@ html, body, #root {
   border-radius: 4px;
 }
 
+/* ═══ ESSAY FRQ EDITOR (AP Lit) ══════════════════════════════════ */
+
+/* ── Instructions Bullets ── */
+.bb-essay-instructions {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--bb-text);
+}
+
+.bb-essay-instructions p {
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.bb-essay-instructions ul {
+  list-style: disc;
+  padding-left: 24px;
+  margin: 0;
+}
+
+.bb-essay-instructions li {
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: var(--bb-text);
+}
+
+/* ── Auto-save Label ── */
+.bb-essay-autosave {
+  text-align: right;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--bb-text-muted);
+  margin-bottom: 8px;
+}
+
+/* ── Formatting Toolbar ── */
+.bb-essay-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--bb-border);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: var(--bb-surface);
+  flex-wrap: wrap;
+}
+
+.bb-essay-toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--bb-text);
+  font-size: 14px;
+  font-family: var(--bb-font);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+  user-select: none;
+}
+
+.bb-essay-toolbar__btn:hover {
+  background: var(--bb-bg);
+  border-color: var(--bb-border);
+}
+
+.bb-essay-toolbar__btn:active {
+  background: var(--bb-border-light);
+}
+
+.bb-essay-toolbar__btn--bold {
+  font-weight: 700;
+}
+
+.bb-essay-toolbar__btn--italic {
+  font-style: italic;
+}
+
+.bb-essay-toolbar__btn--underline {
+  text-decoration: underline;
+}
+
+/* ── Rich Text Editor Area ── */
+.bb-essay-editor {
+  width: 100%;
+  min-height: 280px;
+  max-height: calc(100vh - 420px);
+  padding: 16px;
+  border: 1px solid var(--bb-border);
+  border-radius: 0 0 4px 4px;
+  background: var(--bb-bg);
+  color: var(--bb-text);
+  font-family: var(--bb-font);
+  font-size: 15px;
+  line-height: 1.7;
+  overflow-y: auto;
+  outline: none;
+  cursor: text;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.bb-essay-editor:focus {
+  border-color: var(--bb-blue-btn);
+  box-shadow: 0 0 0 2px rgba(48, 83, 210, 0.15);
+}
+
+/* Placeholder when empty */
+.bb-essay-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--bb-text-muted);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Ensure typed text uses correct formatting */
+.bb-essay-editor p {
+  margin: 0 0 8px 0;
+}
+
+.bb-essay-editor b,
+.bb-essay-editor strong {
+  font-weight: 700;
+}
+
+.bb-essay-editor i,
+.bb-essay-editor em {
+  font-style: italic;
+}
+
+.bb-essay-editor u {
+  text-decoration: underline;
+}
+
+/* ── Essay Graph Bar Color ── */
+.bb-graph-bar--essay {
+  background-color: #8b5cf6;
+}
+
+.bb-legend-dot--essay {
+  background-color: #8b5cf6;
+}

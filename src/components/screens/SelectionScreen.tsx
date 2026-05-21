@@ -23,6 +23,7 @@ export const SelectionScreen: React.FC = () => {
           <option value="" disabled></option>
           <option value="calc_ab">calc ab</option>
           <option value="bio">bio</option>
+          <option value="lit">lit</option>
           <option value="test">test</option>
         </select>
         

@@ -21,6 +21,8 @@ interface ExamState {
   answers: Record<string, string>;          // questionId -> answerId
   flagged: Record<string, boolean>;         // questionId -> true
   eliminated: Record<string, string[]>;     // questionId -> [optionId, ...]
+  timeSpent: Record<string, number>;        // questionId -> seconds spent
+  essayResponses: Record<string, string>;   // questionId -> HTML essay content
 
   // ── Timer ──
   timerSeconds: number;
@@ -51,6 +53,7 @@ interface ExamState {
 
   // Answer Management
   selectAnswer: (questionId: string, optionId: string) => void;
+  setEssayResponse: (questionId: string, html: string) => void;
   toggleFlag: (questionId: string) => void;
   toggleEliminate: (questionId: string, optionId: string) => void;
 
@@ -91,6 +94,8 @@ export const useExamStore = create<ExamState>((set, get) => ({
   answers: {},
   flagged: {},
   eliminated: {},
+  timeSpent: {},
+  essayResponses: {},
   timerSeconds: 0,
   timerRunning: false,
   timerHidden: false,
@@ -126,6 +131,8 @@ export const useExamStore = create<ExamState>((set, get) => ({
       answers: {},
       flagged: {},
       eliminated: {},
+      timeSpent: {},
+      essayResponses: {},
       timerSeconds: firstSection ? firstSection.timeMinutes * 60 : 0,
       timerRunning: false,
       timerHidden: false,
@@ -191,6 +198,11 @@ export const useExamStore = create<ExamState>((set, get) => ({
     set({ answers: { ...state.answers, [questionId]: optionId } });
   },
 
+  setEssayResponse: (questionId, html) => {
+    const state = get();
+    set({ essayResponses: { ...state.essayResponses, [questionId]: html } });
+  },
+
   toggleFlag: (questionId) => {
     const state = get();
     set({
@@ -225,9 +237,17 @@ export const useExamStore = create<ExamState>((set, get) => ({
   tickTimer: () => {
     const state = get();
     if (state.timerRunning && state.timerSeconds > 0) {
-      set({ timerSeconds: state.timerSeconds - 1 });
+      const currentQuestion = state.getCurrentQuestion();
+      const newTimeSpent = { ...state.timeSpent };
+      if (currentQuestion) {
+        newTimeSpent[currentQuestion.id] = (newTimeSpent[currentQuestion.id] || 0) + 1;
+      }
+      set({
+        timerSeconds: state.timerSeconds - 1,
+        timeSpent: newTimeSpent,
+      });
     } else if (state.timerSeconds === 0 && state.timerRunning) {
-      set({ timerRunning: false, phase: 'check' });
+      set({ timerRunning: false, phase: 'done' });
     }
   },
 
@@ -293,7 +313,15 @@ export const useExamStore = create<ExamState>((set, get) => ({
     const state = get();
     const section = state.getCurrentSection();
     if (!section) return 0;
-    return section.questions.filter((q) => state.answers[q.id]).length;
+    return section.questions.filter((q) => {
+      if (state.answers[q.id]) return true;
+      // Count essay FRQs with non-empty content as answered
+      if (q.questionType === 'frq' && state.essayResponses[q.id]) {
+        const text = state.essayResponses[q.id].replace(/<[^>]*>/g, '').trim();
+        return text.length > 0;
+      }
+      return false;
+    }).length;
   },
 
   getFlaggedCount: () => {

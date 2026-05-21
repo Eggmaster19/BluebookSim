@@ -24,6 +24,8 @@ export interface SectionTemplate {
    * Used to match questions to sections when a flat array is provided.
    */
   sectionTag: string;
+  /** Controls FRQ rendering: 'parts' = multi-part (Calc/Bio), 'essay' = rich-text editor (Lit) */
+  frqMode?: 'parts' | 'essay';
 }
 
 export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
@@ -57,6 +59,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       calculatorPolicy: 'required',
       breakAfterMinutes: 1,
       sectionTag: '2A',
+      frqMode: 'parts',
     },
     {
       sectionId: 'sec-2b',
@@ -67,6 +70,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       calculatorPolicy: 'none',
       breakAfterMinutes: null,
       sectionTag: '2B',
+      frqMode: 'parts',
     },
   ],
   bio: [
@@ -89,6 +93,30 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       calculatorPolicy: 'allowed',
       breakAfterMinutes: null,
       sectionTag: '2',
+      frqMode: 'parts',
+    },
+  ],
+  lit: [
+    {
+      sectionId: 'sec-1',
+      title: 'Section I — Multiple Choice',
+      questionType: 'mcq',
+      calculatorAllowed: false,
+      timeMinutes: 60,
+      calculatorPolicy: 'none',
+      breakAfterMinutes: 10,
+      sectionTag: '1',
+    },
+    {
+      sectionId: 'sec-2',
+      title: 'Section II — Free Response',
+      questionType: 'frq',
+      calculatorAllowed: false,
+      timeMinutes: 120,
+      calculatorPolicy: 'none',
+      breakAfterMinutes: null,
+      sectionTag: '2',
+      frqMode: 'essay',
     },
   ],
 };

@@ -6,11 +6,14 @@ export const NavigationModal: React.FC = () => {
   const currentQuestionIndex = useExamStore((s) => s.currentQuestionIndex);
   const answers = useExamStore((s) => s.answers);
   const flagged = useExamStore((s) => s.flagged);
+  const essayResponses = useExamStore((s) => s.essayResponses);
   const goToQuestion = useExamStore((s) => s.goToQuestion);
   const closeNavModal = useExamStore((s) => s.closeNavModal);
   const setPhase = useExamStore((s) => s.setPhase);
 
   if (!section) return null;
+
+  const isEssayMode = section.frqMode === 'essay';
 
   return (
     <>
@@ -40,7 +43,12 @@ export const NavigationModal: React.FC = () => {
 
         <div className="bb-nav-modal__grid">
           {section.questions.map((q, i) => {
-            const isAnswered = !!answers[q.id];
+            let isAnswered = !!answers[q.id];
+            // For essay FRQs, check essayResponses for non-empty content
+            if (!isAnswered && q.questionType === 'frq' && isEssayMode && essayResponses[q.id]) {
+              const text = essayResponses[q.id].replace(/<[^>]*>/g, '').trim();
+              isAnswered = text.length > 0;
+            }
             const isCurrent = i === currentQuestionIndex;
             const isFlagged = !!flagged[q.id];
 

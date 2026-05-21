@@ -10,6 +10,7 @@ import '../../styles/bluebook.css';
 const EXAM_META: Record<string, { label: string; title: string; examType: string; subject: string; studentName: string }> = {
   calc_ab: { label: 'calc ab', title: 'AP Calculus AB Practice', examType: 'AP', subject: 'Calculus AB', studentName: 'Isaac Newton' },
   bio: { label: 'bio', title: 'AP Biology Practice', examType: 'AP', subject: 'Biology', studentName: 'Gregor Mendel' },
+  lit: { label: 'lit', title: 'AP English Literature Practice', examType: 'AP', subject: 'English Literature and Composition', studentName: 'William Shakespeare' },
   test: { label: 'test', title: 'Simulator Test', examType: 'TEST', subject: 'Testing', studentName: 'Ben Baumgartner' },
 };
 
@@ -156,6 +157,9 @@ function splitIntoSections(
     } else if (examType === 'bio') {
       if (template.sectionTag === '1') sectionTime = Math.ceil(sectionQuestions.length * 1.5);
       else if (template.sectionTag === '2') sectionTime = sectionQuestions.length * 15;
+    } else if (examType === 'lit') {
+      if (template.sectionTag === '1') sectionTime = Math.ceil(sectionQuestions.length * (80 / 60));
+      else if (template.sectionTag === '2') sectionTime = sectionQuestions.length * 40;
     }
 
     sections.push({
@@ -164,6 +168,7 @@ function splitIntoSections(
       calculatorAllowed: template.calculatorAllowed,
       timeMinutes: sectionTime,
       breakAfterMinutes: template.breakAfterMinutes,
+      frqMode: template.frqMode,
       directions: generateDirections({
         subject: meta.subject,
         sectionTitle: template.title,
@@ -171,6 +176,7 @@ function splitIntoSections(
         timeMinutes: sectionTime,
         calculatorPolicy: template.calculatorPolicy,
         isFRQ: template.questionType === 'frq',
+        examType,
       }),
       questions: sectionQuestions,
     });
@@ -223,6 +229,7 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
           calculatorAllowed: sec.calculatorAllowed ?? false,
           timeMinutes: sec.timeMinutes ?? 60,
           breakAfterMinutes: sec.breakAfterMinutes ?? (si < parsed.sections.length - 1 ? 10 : null),
+          frqMode: sec.frqMode,
           directions: sec.directions ?? generateDirections({
             subject: meta.subject,
             sectionTitle: sec.title ?? `Section ${si + 1}`,
@@ -230,6 +237,7 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
             timeMinutes: sec.timeMinutes ?? 60,
             calculatorPolicy: sec.calculatorAllowed ? 'required' : 'none',
             isFRQ: questions.some((q: Question) => q.questionType === 'frq'),
+            examType,
           }),
           questions,
         };

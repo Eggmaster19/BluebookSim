@@ -52,6 +52,8 @@ export interface ExamSection {
   directions: string;      // HTML/text for the directions screen
   questions: Question[];
   breakAfterMinutes: number | null; // null = no break (last section)
+  /** Controls FRQ rendering: 'parts' = multi-part (Calc/Bio), 'essay' = rich-text editor (Lit) */
+  frqMode?: 'parts' | 'essay';
 }
 
 // ── Full Exam ───────────────────────────────────────────────────────
