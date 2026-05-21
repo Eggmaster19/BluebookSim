@@ -444,15 +444,23 @@ export const useExamStore = create<ExamState>()(
         // timerRunning, navModalOpen, eliminatorMode are transient — not persisted.
       }),
       onRehydrateStorage: () => {
-        return (state) => {
+        return (state, error) => {
+          if (error) {
+            console.error('Exam store rehydration failed:', error);
+          }
           if (state) {
             // Mark hydration complete so UI can wait for it
-            state._hasHydrated = true;
             // Ensure transient state is reset after rehydration
-            state.timerRunning = false;
-            state.navModalOpen = false;
-            state.eliminatorMode = false;
-            state.imageBlobs = {};
+            useExamStore.setState({
+              _hasHydrated: true,
+              timerRunning: false,
+              navModalOpen: false,
+              eliminatorMode: false,
+              imageBlobs: {},
+            });
+          } else {
+            // Rehydration failed — still unblock the UI
+            useExamStore.setState({ _hasHydrated: true });
           }
         };
       },
