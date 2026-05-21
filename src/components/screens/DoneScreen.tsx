@@ -167,7 +167,7 @@ export const DoneScreen: React.FC = () => {
         
         {/* Header */}
         <div className="bb-done-header">
-          <div className="bb-done-header__celebration">🎉 Test Complete!</div>
+          <div className="bb-done-header__celebration">Test Complete!</div>
           <h1 className="bb-done-header__title">Practice Results Dashboard</h1>
           <p className="bb-done-header__subtitle">
             Great job, <strong>{studentName}</strong>. Review your performance stats below.
@@ -394,8 +394,8 @@ export const DoneScreen: React.FC = () => {
               ← Back to Previous Tests
             </button>
           ) : (
-            <button className="bb-done-btn bb-done-btn--primary" onClick={() => window.location.reload()}>
-              Start New Exam
+            <button className="bb-done-btn bb-done-btn--primary" onClick={exitHistoryView}>
+              Home
             </button>
           )}
         </div>

@@ -85,7 +85,7 @@ export const HistoryScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           <h1 className="bb-history-title">Previous Tests</h1>
           <p className="bb-history-subtitle">
             {history.length === 0
-              ? 'No completed tests yet. Finish an exam to see it here.'
+              ? 'No completed tests yet.'
               : `${history.length} completed test${history.length !== 1 ? 's' : ''}`}
           </p>
         </div>

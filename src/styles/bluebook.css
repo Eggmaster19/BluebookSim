@@ -167,11 +167,55 @@ html, body, #root {
   gap: 2px;
   cursor: default;
   opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.bb-header__tool--interactive {
+  cursor: pointer !important;
+  opacity: 0.8;
+}
+
+.bb-header__tool--interactive:hover,
+.bb-header__tool--active {
+  opacity: 1 !important;
 }
 
 .bb-header__tool svg {
   width: 20px;
   height: 20px;
+}
+
+.bb-header__dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background-color: var(--bb-bg);
+  border: 1px solid var(--bb-border);
+  border-radius: 8px;
+  box-shadow: var(--bb-shadow-lg);
+  padding: 6px 0;
+  min-width: 150px;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+}
+
+.bb-header__dropdown-item {
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: var(--bb-font);
+  font-size: 14px;
+  color: var(--bb-text);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.bb-header__dropdown-item:hover {
+  background-color: var(--bb-surface);
 }
 
 /* ═══ WARNING BANNER ══════════════════════════════════════════════ */

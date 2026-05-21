@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useExamStore } from '../../store/examStore';
 
 export const Header: React.FC = () => {
@@ -6,6 +6,21 @@ export const Header: React.FC = () => {
   const timerSeconds = useExamStore((s) => s.timerSeconds);
   const timerHidden = useExamStore((s) => s.timerHidden);
   const toggleTimerHidden = useExamStore((s) => s.toggleTimerHidden);
+  const exitHistoryView = useExamStore((s) => s.exitHistoryView);
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (!section) return null;
 
@@ -13,6 +28,13 @@ export const Header: React.FC = () => {
   const seconds = timerSeconds % 60;
   const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
   const isWarning = timerSeconds <= 300 && timerSeconds > 0; // 5 minutes
+
+  const handleExitExam = () => {
+    setMoreOpen(false);
+    if (window.confirm('Are you sure you want to exit the exam? Your current progress will be lost.')) {
+      exitHistoryView();
+    }
+  };
 
   return (
     <div className="bb-header">
@@ -58,13 +80,27 @@ export const Header: React.FC = () => {
             <span>Calculator</span>
           </div>
         )}
-        <div className="bb-header__tool">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="1" />
-            <circle cx="12" cy="5" r="1" />
-            <circle cx="12" cy="19" r="1" />
-          </svg>
-          <span>More</span>
+        <div ref={dropdownRef} style={{ position: 'relative', display: 'flex' }}>
+          <button
+            className={`bb-header__tool bb-header__tool--interactive ${moreOpen ? 'bb-header__tool--active' : ''}`}
+            onClick={() => setMoreOpen(!moreOpen)}
+            style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit', padding: 0, outline: 'none' }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="1" />
+              <circle cx="12" cy="5" r="1" />
+              <circle cx="12" cy="19" r="1" />
+            </svg>
+            <span>More</span>
+          </button>
+          
+          {moreOpen && (
+            <div className="bb-header__dropdown">
+              <button className="bb-header__dropdown-item" onClick={handleExitExam}>
+                Exit the exam
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

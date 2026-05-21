@@ -12,11 +12,91 @@ export interface DirectionOptions {
 /* ─── Exam-specific direction generators ────────────────────────── */
 
 /**
+ * Shared direction generator for AP Physics C exams (Mechanics & E&M).
+ * Both exams share identical structure; only the subject name differs.
+ */
+function generatePhysicsCDirections(subject: string, options: DirectionOptions): string {
+  const { sectionTitle, questionCount, timeMinutes, isFRQ } = options;
+
+  const timeDisplay = timeMinutes >= 60
+    ? `${Math.floor(timeMinutes / 60)} hour${Math.floor(timeMinutes / 60) > 1 ? 's' : ''}${timeMinutes % 60 > 0 ? ` and ${timeMinutes % 60} minutes` : ''}`
+    : `${timeMinutes} minutes`;
+
+  if (isFRQ) {
+    return `<h1>${sectionTitle} Directions</h1>
+<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day.</strong></p>
+<p style="text-align:center">${subject}</p>
+<p>${sectionTitle} has ${questionCount} questions and lasts ${timeDisplay}.</p>
+<p>You may use the available paper for scratch work and planning, but only work written in the free response booklet will be scored. Any work done on scratch paper will not be scored. Label parts (e.g., A, B, C) and sub-parts (e.g., i, ii, iii) as needed. Use a pencil or a pen with black or dark blue ink to write your responses.</p>
+<p>A calculator is allowed in this section, as well as a ruler and straightedge. You may use a handheld four function, scientific, or graphing calculator, or the calculator available in this application. Reference information, including lists of equations, can be used throughout the exam. A digital version is available in this application.</p>
+<p>All final numerical answers should include appropriate units when applicable. Credit for your work depends on demonstrating that you know which physical principles to apply in a particular situation. Credit will be awarded only for work that is clearly designated as the solution to a specific part of a question. Credit also depends on the quality of your solutions and explanations. Therefore, you should show your work for each part in the space provided for that part. If you need more space, be sure to clearly indicate where you continue your work. When constructing a graph or diagram, use only one color of ink or pencil.</p>
+<p>You may pace yourself as you answer the questions in this section, or you may use these optional timing recommendations:</p>
+<p>It is suggested that you spend about 25 minutes each on Questions 1 and 3, about 30 minutes on Question 2, and about 20 minutes on Question 4.</p>
+<p>You can go back and forth between questions in this section until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
+  }
+
+  return `<h1>${sectionTitle} Directions</h1>
+<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day and has fewer multiple-choice questions than the exam.</strong></p>
+<p style="text-align:center">${subject}</p>
+<p>${sectionTitle} has ${questionCount} multiple choice questions and lasts ${timeDisplay}.</p>
+<p>Each of the questions or incomplete statements is followed by four suggested answers or completions. Select the one that is best in each case.</p>
+<p>To simplify calculations, you may use <em>g</em> = 10 m/s<sup>2</sup> in all problems.</p>
+<p>A calculator is allowed in this section, as well as a ruler and straightedge. You may use a handheld four-function, scientific, or graphing calculator, or the calculator available in this application.</p>
+<p>Reference information, including lists of equations, can be used throughout the exam. A digital version is available in this application.</p>
+<p>You can go back and forth between questions in this section until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
+}
+
+/**
+ * Shared direction generator for AP Economics exams (Macroeconomics & Microeconomics).
+ * Both exams share identical structure; only the subject name differs.
+ */
+function generateEconDirections(subject: string, options: DirectionOptions): string {
+  const { sectionTitle, questionCount, timeMinutes, isFRQ } = options;
+
+  const timeDisplay = timeMinutes >= 60
+    ? `${Math.floor(timeMinutes / 60)} hour${Math.floor(timeMinutes / 60) > 1 ? 's' : ''}${timeMinutes % 60 > 0 ? ` and ${timeMinutes % 60} minutes` : ''}`
+    : `${timeMinutes} minutes`;
+
+  if (isFRQ) {
+    return `<h1>${sectionTitle} Directions</h1>
+<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day.</strong></p>
+<p style="text-align:center">${subject}</p>
+<p>${sectionTitle} has ${questionCount} questions and lasts ${timeDisplay}.</p>
+<p>You may use the available paper for scratch work and planning, but only work written in the free response booklet will be scored. Any work done on scratch paper will not be scored. Label parts (e.g., A, B, C) and sub-parts (e.g., i, ii, iii) as needed. Use a pencil or a pen with black or dark blue ink to write your responses.</p>
+<p>Include correctly labeled graphs, if useful or required, in explaining your answers. A correctly labeled graph must have all axes and curves clearly labeled and must show directional changes. If the question prompts you to "Calculate," you must show how you arrived at your final answer.</p>
+<p>A calculator is allowed in this section. You may use a handheld calculator that is approved for this exam or the calculator available in this application.</p>
+<p>You may pace yourself as you answer the questions in this section, or you may use these optional timing recommendations:</p>
+<p>It is suggested that you spend the first 10 minutes reading all of the questions and planning your answers. Then, it is suggested that you spend about 25 minutes on question 1 and about 12 minutes each on questions 2 and 3.</p>
+<p>You can go back and forth between questions in this section until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
+  }
+
+  return `<h1>${sectionTitle} Directions</h1>
+<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day and has fewer multiple-choice questions than the exam.</strong></p>
+<p style="text-align:center">${subject}</p>
+<p>${sectionTitle} has ${questionCount} questions and lasts ${timeDisplay}.</p>
+<p>Each of the questions or incomplete statements is followed by 5 suggested answers or completions. Select the one that is best in each case.</p>
+<p>A calculator is allowed in this section. You may use a handheld calculator that is approved for this exam or the calculator available in this application.</p>
+<p>You can go back and forth between questions in this section until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
+}
+
+/**
  * Registry of exam-specific direction generators.
  * If an exam type has an entry here, it will be used instead of the
  * generic fallback. Each generator receives the same DirectionOptions.
  */
 const EXAM_DIRECTIONS: Record<string, (options: DirectionOptions) => string> = {
+
+  /* ── AP Physics C: Mechanics ─────────────────────────────────────── */
+  phys_mech: (options) => generatePhysicsCDirections('Physics C: Mechanics', options),
+
+  /* ── AP Physics C: Electricity and Magnetism ─────────────────────── */
+  phys_em: (options) => generatePhysicsCDirections('Physics C: Electricity and Magnetism', options),
+
+  /* ── AP Macroeconomics ───────────────────────────────────────────── */
+  econ_macro: (options) => generateEconDirections('Macroeconomics', options),
+
+  /* ── AP Microeconomics ───────────────────────────────────────────── */
+  econ_micro: (options) => generateEconDirections('Microeconomics', options),
 
   /* ── AP Calculus AB ─────────────────────────────────────────────── */
   calc_ab: (options) => {
