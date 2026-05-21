@@ -1316,6 +1316,49 @@ html, body, #root {
   transform: translateX(-50%) translateY(0);
 }
 
+.bb-graph-tooltip--side-right {
+  bottom: auto;
+  top: 0;
+  left: 125%;
+  transform: translateX(-8px);
+}
+
+.bb-graph-tooltip--side-right::after {
+  top: 12px;
+  left: auto;
+  right: 100%;
+  transform: translateY(-50%);
+  border-color: transparent #333333 transparent transparent;
+}
+
+.bb-graph-bar:hover .bb-graph-tooltip--side-right {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.bb-graph-tooltip--side-left {
+  bottom: auto;
+  top: 0;
+  left: auto;
+  right: 125%;
+  transform: translateX(8px);
+}
+
+.bb-graph-tooltip--side-left::after {
+  top: 12px;
+  left: 100%;
+  right: auto;
+  transform: translateY(-50%);
+  border-color: transparent transparent transparent #333333;
+}
+
+.bb-graph-bar:hover .bb-graph-tooltip--side-left {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
 .bb-graph-tooltip__title {
   font-weight: 700;
   border-bottom: 1px solid #222222;
@@ -2001,3 +2044,265 @@ html, body, #root {
 .bb-legend-dot--essay {
   background-color: #8b5cf6;
 }
+
+/* ═══ SELECTION SCREEN: HISTORY BUTTON ════════════════════════════ */
+.selection-history-btn {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: transparent;
+  color: #555555;
+  border: 1px solid #333333;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.selection-history-btn:hover {
+  color: #ffffff;
+  border-color: #888888;
+}
+
+/* ═══ HISTORY SCREEN ═════════════════════════════════════════════ */
+.bb-history-container {
+  width: 100%;
+  min-height: 100vh;
+  background: #000000;
+  color: #ffffff;
+  padding: 48px 24px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+}
+
+.bb-history-dashboard {
+  max-width: 900px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header */
+.bb-history-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bb-history-back-btn {
+  background: transparent;
+  color: #555555;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  align-self: flex-start;
+  transition: color 0.2s;
+}
+
+.bb-history-back-btn:hover {
+  color: #ffffff;
+}
+
+.bb-history-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-top: 8px;
+}
+
+.bb-history-subtitle {
+  font-size: 14px;
+  color: #555555;
+}
+
+/* Actions Bar */
+.bb-history-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bb-history-clear-btn {
+  background: transparent;
+  color: #555555;
+  border: 1px solid #333333;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.bb-history-clear-btn:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+/* Confirm Dialog */
+.bb-history-confirm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #888888;
+}
+
+.bb-history-confirm-yes {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.bb-history-confirm-yes:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.bb-history-confirm-no {
+  background: transparent;
+  color: #555555;
+  border: 1px solid #333333;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.bb-history-confirm-no:hover {
+  color: #ffffff;
+  border-color: #888888;
+}
+
+.bb-history-confirm-inline {
+  display: inline-flex;
+  gap: 6px;
+}
+
+/* Table */
+.bb-history-table-wrap {
+  border: 1px solid #222222;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bb-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.bb-history-table thead {
+  background: #0a0a0a;
+}
+
+.bb-history-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #555555;
+  border-bottom: 1px solid #222222;
+}
+
+.bb-history-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #1a1a1a;
+  vertical-align: middle;
+}
+
+.bb-history-table tbody tr {
+  transition: background 0.15s;
+}
+
+.bb-history-table tbody tr:hover {
+  background: #0a0a0a;
+}
+
+.bb-history-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.bb-history-cell-date {
+  color: #888888;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.bb-history-cell-subject {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.bb-history-cell-score {
+  color: #ffffff;
+  font-family: var(--bb-font-mono);
+  font-size: 13px;
+}
+
+.bb-history-cell-time {
+  color: #888888;
+  font-family: var(--bb-font-mono);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.bb-history-cell-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.bb-history-view-btn {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.bb-history-view-btn:hover {
+  background: #ffffff;
+  color: #000000;
+}
+
+.bb-history-delete-btn {
+  background: transparent;
+  color: #555555;
+  border: 1px solid #333333;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.bb-history-delete-btn:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+

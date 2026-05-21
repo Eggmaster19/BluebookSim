@@ -28,8 +28,7 @@ const App: React.FC = () => {
   const startTimer = useExamStore((s) => s.startTimer);
   const tickTimer = useExamStore((s) => s.tickTimer);
   const timerRunning = useExamStore((s) => s.timerRunning);
-
-  // No longer load mock exam on mount automatically
+  const hasHydrated = useExamStore((s) => s._hasHydrated);
 
   // Timer tick effect
   useEffect(() => {
@@ -39,6 +38,26 @@ const App: React.FC = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [timerRunning, tickTimer]);
+
+  // Auto-resume timer after rehydration if we were mid-exam
+  useEffect(() => {
+    if (hasHydrated && phase === 'exam' && !timerRunning && exam) {
+      startTimer();
+    }
+    // Only run once on hydration
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated]);
+
+  // Wait for IndexedDB hydration before rendering anything
+  if (!hasHydrated) {
+    return (
+      <div className="selection-screen">
+        <div className="selection-container" style={{ color: '#555' }}>
+          loading…
+        </div>
+      </div>
+    );
+  }
 
   // ── Pre-exam screens ──
   if (!exam) {

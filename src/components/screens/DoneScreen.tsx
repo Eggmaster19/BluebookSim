@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { useExamStore } from '../../store/examStore';
 
+
 export const DoneScreen: React.FC = () => {
   const studentName = useExamStore((s) => s.studentName);
   const exam = useExamStore((s) => s.exam);
   const answers = useExamStore((s) => s.answers);
   const timeSpent = useExamStore((s) => s.timeSpent || {});
   const essayResponses = useExamStore((s) => s.essayResponses || {});
+  const viewingHistoryId = useExamStore((s) => s.viewingHistoryId);
+  const exitHistoryView = useExamStore((s) => s.exitHistoryView);
+  const isHistoryView = !!viewingHistoryId;
 
   const [copiedMCQ, setCopiedMCQ] = useState(false);
   const [copiedFRQ, setCopiedFRQ] = useState(false);
@@ -111,12 +115,7 @@ export const DoneScreen: React.FC = () => {
 
   // 4. MCQ Export Text Generation
   const generateMCQExportText = () => {
-    let text = `======================================================\n`;
-    text += `EXAM: ${exam.metadata.title}\n`;
-    text += `SUBJECT: ${exam.metadata.subject}\n`;
-    text += `STUDENT: ${studentName}\n`;
-    text += `======================================================\n\n`;
-    text += `--- MCQ USER RESPONSES ---\n\n`;
+    let text = `--- MCQ RESPONSES ---\n\n`;
 
     mcqs.forEach((q) => {
       const selected = answers[q.id] || '[No Answer]';
@@ -128,18 +127,12 @@ export const DoneScreen: React.FC = () => {
       }
     });
 
-    text += `\n======================================================\n`;
     return text;
   };
 
   // 5. FRQ Essay Export Text Generation
   const generateFRQExportText = () => {
-    let text = `======================================================\n`;
-    text += `EXAM: ${exam.metadata.title}\n`;
-    text += `SUBJECT: ${exam.metadata.subject}\n`;
-    text += `STUDENT: ${studentName}\n`;
-    text += `======================================================\n\n`;
-    text += `--- FRQ ESSAY RESPONSES ---\n\n`;
+    let text = `--- FRQ RESPONSES ---\n\n`;
 
     essayFRQs.forEach((q) => {
       const essayHtml = essayResponses[q.id] || '';
@@ -151,7 +144,6 @@ export const DoneScreen: React.FC = () => {
       text += `Response:\n${essayText || '[No Response]'}\n\n`;
     });
 
-    text += `======================================================\n`;
     return text;
   };
 
@@ -278,9 +270,16 @@ export const DoneScreen: React.FC = () => {
             {/* Graph Canvas */}
             <div className="bb-graph-scroll-container">
               <div className="bb-graph-canvas" style={{ minWidth: `${Math.max(600, allQuestions.length * 48)}px` }}>
-                {allQuestions.map((q) => {
+                {allQuestions.map((q, qIdx) => {
                   const seconds = timeSpent[q.id] || 0;
                   const heightPercent = maxTime > 0 ? (seconds / maxTime) * 100 : 0;
+                  const isTall = heightPercent > 50;
+                  const isNearEnd = qIdx > allQuestions.length - 4;
+
+                  let tooltipClass = 'bb-graph-tooltip';
+                  if (isTall) {
+                    tooltipClass += isNearEnd ? ' bb-graph-tooltip--side-left' : ' bb-graph-tooltip--side-right';
+                  }
                   
                   // Color code selection
                   let barClass = 'bb-graph-bar--neutral';
@@ -316,7 +315,7 @@ export const DoneScreen: React.FC = () => {
                           style={{ height: `${Math.max(4, heightPercent)}%` }}
                         >
                           {/* CSS Tooltip */}
-                          <div className="bb-graph-tooltip">
+                          <div className={tooltipClass}>
                             <div className="bb-graph-tooltip__title">{q.displayLabel}</div>
                             <div className="bb-graph-tooltip__row">
                               <strong>Status:</strong> {statusLabel}
@@ -354,35 +353,35 @@ export const DoneScreen: React.FC = () => {
         {mcqs.length > 0 && (
           <div className="bb-dashboard-section">
             <div className="bb-section-header">
-              <h2 className="bb-section-title">MCQ Export (for AI Review)</h2>
+              <h2 className="bb-section-title">MCQ Export</h2>
               <p className="bb-section-desc">
-                Copy this streamlined response sheet to feed into an AI along with your original questions.
+                Copy this streamlined response sheet.
               </p>
             </div>
 
             <div className="bb-export-box">
               <pre className="bb-export-content">{generateMCQExportText()}</pre>
               <button className="bb-export-btn" onClick={handleCopyMCQExport}>
-                {copiedMCQ ? '✓ Copied to Clipboard!' : '📋 Copy MCQ Results for AI'}
+                {copiedMCQ ? '✓ Copied to Clipboard!' : '📋 Copy MCQ Results'}
               </button>
             </div>
           </div>
         )}
 
-        {/* Section: FRQ Essay Export — only for essay-mode FRQs */}
+        {/* Section: FRQ Export */}
         {essayFRQs.length > 0 && (
           <div className="bb-dashboard-section">
             <div className="bb-section-header">
-              <h2 className="bb-section-title">FRQ Essay Export (for AI Review)</h2>
+              <h2 className="bb-section-title">FRQ Export</h2>
               <p className="bb-section-desc">
-                Copy your essay responses to feed into an AI for scoring and feedback.
+                Copy your essay responses.
               </p>
             </div>
 
             <div className="bb-export-box">
               <pre className="bb-export-content">{generateFRQExportText()}</pre>
               <button className="bb-export-btn" onClick={handleCopyFRQExport}>
-                {copiedFRQ ? '✓ Copied to Clipboard!' : '📋 Copy Essay Responses for AI'}
+                {copiedFRQ ? '✓ Copied to Clipboard!' : '📋 Copy FRQ Responses'}
               </button>
             </div>
           </div>
@@ -390,9 +389,15 @@ export const DoneScreen: React.FC = () => {
 
         {/* Controls */}
         <div className="bb-done-actions">
-          <button className="bb-done-btn bb-done-btn--primary" onClick={() => window.location.reload()}>
-            Start New Exam
-          </button>
+          {isHistoryView ? (
+            <button className="bb-done-btn bb-done-btn--primary" onClick={exitHistoryView}>
+              ← Back to Previous Tests
+            </button>
+          ) : (
+            <button className="bb-done-btn bb-done-btn--primary" onClick={() => window.location.reload()}>
+              Start New Exam
+            </button>
+          )}
         </div>
 
       </div>
