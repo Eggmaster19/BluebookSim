@@ -283,4 +283,7 @@ AI_PROMPTS['econ_micro'] = generateEconAIPrompt(
   'Supply and Demand curves, PPF (Production Possibilities Frontier) curves, Cost Curves (MC, ATC, AVC, AFC) for firms, Market Structure graphs (monopoly, perfect competition, monopolistic competition), Factor Market (Labor) curves, Lorenz curves, coordinate axes for sketching microeconomic markets'
 );
 
+// Inject Calculus BC prompt by adapting Calculus AB
+AI_PROMPTS['calc_bc'] = AI_PROMPTS['calc_ab'].replace('Calculus AB', 'Calculus BC');
+
 

@@ -212,3 +212,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
     },
   ],
 };
+
+// Inject Calculus BC configuration (same as Calculus AB)
+SECTION_CONFIGS['calc_bc'] = SECTION_CONFIGS['calc_ab'];

@@ -8,7 +8,8 @@ import '../../styles/bluebook.css';
 
 /* ── Exam type metadata for directions generation ── */
 const EXAM_META: Record<string, { label: string; title: string; examType: string; subject: string; studentName: string }> = {
-  calc_ab: { label: 'calc ab', title: 'AP Calculus AB Practice', examType: 'AP', subject: 'Calculus AB', studentName: 'Isaac Newton' },
+  calc_ab: { label: 'calc ab', title: 'AP Calculus AB Practice', examType: 'AP', subject: 'Calculus AB', studentName: 'Gottfried Leibniz' },
+  calc_bc: { label: 'calc bc', title: 'AP Calculus BC Practice', examType: 'AP', subject: 'Calculus BC', studentName: 'Isaac Newton' },
   bio: { label: 'bio', title: 'AP Biology Practice', examType: 'AP', subject: 'Biology', studentName: 'Gregor Mendel' },
   lit: { label: 'lit', title: 'AP English Literature Practice', examType: 'AP', subject: 'English Literature and Composition', studentName: 'William Shakespeare' },
   phys_mech: { label: 'mech', title: 'AP Physics C: Mechanics Practice', examType: 'AP', subject: 'Physics C: Mechanics', studentName: 'Einstein' },
@@ -153,7 +154,7 @@ function splitIntoSections(
 
     // Calculate dynamic background time allocation based on number of questions
     let sectionTime = template.timeMinutes;
-    if (examType === 'calc_ab') {
+    if (examType === 'calc_ab' || examType === 'calc_bc') {
       if (template.sectionTag === '1A') sectionTime = sectionQuestions.length * 2;
       else if (template.sectionTag === '1B') sectionTime = sectionQuestions.length * 3;
       else if (template.sectionTag === '2A') sectionTime = sectionQuestions.length * 15;

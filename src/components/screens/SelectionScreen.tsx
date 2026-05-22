@@ -29,9 +29,10 @@ export const SelectionScreen: React.FC = () => {
           value={selectedExamId} 
           onChange={(e) => setSelectedExamId(e.target.value)}
         >
-          <option value="previous_exams">Previous exams</option>
+          <option value="previous_exams">previous exams</option>
           <option value="" disabled hidden></option>
           <option value="calc_ab">calc ab</option>
+          <option value="calc_bc">calc bc</option>
           <option value="bio">bio</option>
           <option value="lit">lit</option>
           <option value="phys_mech">mech</option>

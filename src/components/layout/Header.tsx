@@ -84,12 +84,12 @@ export const Header: React.FC = () => {
           <button
             className={`bb-header__tool bb-header__tool--interactive ${moreOpen ? 'bb-header__tool--active' : ''}`}
             onClick={() => setMoreOpen(!moreOpen)}
-            style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit', padding: 0, outline: 'none' }}
+            style={{ background: 'none', border: 'none', color: '#000000', font: 'inherit', padding: 0, outline: 'none', opacity: 1 }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="1" />
-              <circle cx="12" cy="5" r="1" />
-              <circle cx="12" cy="19" r="1" />
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="12" cy="5" r="2" />
+              <circle cx="12" cy="19" r="2" />
             </svg>
             <span>More</span>
           </button>
