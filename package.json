@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "dompurify": "^3.4.3",
     "function-plot": "^1.25.4",
     "idb-keyval": "^6.2.4",
