@@ -15,6 +15,8 @@ export interface SectionTemplate {
   calculatorAllowed: boolean;
   /** Default time allocation in minutes */
   timeMinutes: number;
+  /** Suggested time per question in minutes */
+  timePerQuestion?: number;
   calculatorPolicy: 'none' | 'required' | 'allowed';
   /** Break duration after this section in minutes. null = no break (last section). */
   breakAfterMinutes: number | null;
@@ -26,6 +28,8 @@ export interface SectionTemplate {
   sectionTag: string;
   /** Controls FRQ rendering: 'parts' = multi-part (Calc/Bio), 'essay' = rich-text editor (Lit) */
   frqMode?: 'parts' | 'essay';
+  /** Reading period in minutes at the start of the section (e.g., 10 minutes for Econ FRQ) */
+  readingPeriodMinutes?: number;
 }
 
 export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
@@ -36,6 +40,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'mcq',
       calculatorAllowed: false,
       timeMinutes: 60,
+      timePerQuestion: 2,
       calculatorPolicy: 'none',
       breakAfterMinutes: 1,
       sectionTag: '1A',
@@ -46,6 +51,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'mcq',
       calculatorAllowed: true,
       timeMinutes: 45,
+      timePerQuestion: 3,
       calculatorPolicy: 'required',
       breakAfterMinutes: 10,
       sectionTag: '1B',
@@ -56,6 +62,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'frq',
       calculatorAllowed: true,
       timeMinutes: 30,
+      timePerQuestion: 15,
       calculatorPolicy: 'required',
       breakAfterMinutes: 1,
       sectionTag: '2A',
@@ -67,6 +74,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'frq',
       calculatorAllowed: false,
       timeMinutes: 30,
+      timePerQuestion: 15,
       calculatorPolicy: 'none',
       breakAfterMinutes: null,
       sectionTag: '2B',
@@ -80,6 +88,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'mcq',
       calculatorAllowed: true,
       timeMinutes: 90,
+      timePerQuestion: 1.5,
       calculatorPolicy: 'allowed',
       breakAfterMinutes: 10,
       sectionTag: '1',
@@ -90,6 +99,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'frq',
       calculatorAllowed: true,
       timeMinutes: 90,
+      timePerQuestion: 15,
       calculatorPolicy: 'allowed',
       breakAfterMinutes: null,
       sectionTag: '2',
@@ -103,6 +113,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'mcq',
       calculatorAllowed: false,
       timeMinutes: 60,
+      timePerQuestion: 1.09, // approx 1 min 5 secs
       calculatorPolicy: 'none',
       breakAfterMinutes: 10,
       sectionTag: '1',
@@ -113,6 +124,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'frq',
       calculatorAllowed: false,
       timeMinutes: 120,
+      timePerQuestion: 40,
       calculatorPolicy: 'none',
       breakAfterMinutes: null,
       sectionTag: '2',
@@ -126,6 +138,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'mcq',
       calculatorAllowed: true,
       timeMinutes: 80,
+      timePerQuestion: 2,
       calculatorPolicy: 'allowed',
       breakAfterMinutes: 10,
       sectionTag: '1',
@@ -136,6 +149,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'frq',
       calculatorAllowed: true,
       timeMinutes: 100,
+      timePerQuestion: 25,
       calculatorPolicy: 'allowed',
       breakAfterMinutes: null,
       sectionTag: '2',
@@ -149,6 +163,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'mcq',
       calculatorAllowed: true,
       timeMinutes: 80,
+      timePerQuestion: 2,
       calculatorPolicy: 'allowed',
       breakAfterMinutes: 10,
       sectionTag: '1',
@@ -159,6 +174,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'frq',
       calculatorAllowed: true,
       timeMinutes: 100,
+      timePerQuestion: 25,
       calculatorPolicy: 'allowed',
       breakAfterMinutes: null,
       sectionTag: '2',
@@ -172,6 +188,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'mcq',
       calculatorAllowed: true,
       timeMinutes: 70,
+      timePerQuestion: 1.1666, // approx 1 min 10 secs
       calculatorPolicy: 'allowed',
       breakAfterMinutes: 10,
       sectionTag: '1',
@@ -182,10 +199,12 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'frq',
       calculatorAllowed: true,
       timeMinutes: 60,
+      timePerQuestion: 20,
       calculatorPolicy: 'allowed',
       breakAfterMinutes: null,
       sectionTag: '2',
-      frqMode: 'parts',
+      frqMode: 'essay',
+      readingPeriodMinutes: 10,
     },
   ],
   econ_micro: [
@@ -195,6 +214,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'mcq',
       calculatorAllowed: true,
       timeMinutes: 70,
+      timePerQuestion: 1.1666, // approx 1 min 10 secs
       calculatorPolicy: 'allowed',
       breakAfterMinutes: 10,
       sectionTag: '1',
@@ -205,10 +225,12 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       questionType: 'frq',
       calculatorAllowed: true,
       timeMinutes: 60,
+      timePerQuestion: 20,
       calculatorPolicy: 'allowed',
       breakAfterMinutes: null,
       sectionTag: '2',
-      frqMode: 'parts',
+      frqMode: 'essay',
+      readingPeriodMinutes: 10,
     },
   ],
 };

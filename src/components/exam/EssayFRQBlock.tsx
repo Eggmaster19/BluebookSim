@@ -13,10 +13,20 @@ interface EssayFRQBlockProps {
  * Essays are persisted to the exam store on every content change.
  */
 export const EssayFRQBlock: React.FC<EssayFRQBlockProps> = ({ question }) => {
-  const { flagged, toggleFlag, essayResponses, setEssayResponse } = useExamStore();
+  const { flagged, toggleFlag, essayResponses, setEssayResponse, timerSeconds } = useExamStore();
   const isFlagged = flagged[question.id];
   const questionIndex = useExamStore((s) => s.currentQuestionIndex);
+  const section = useExamStore((s) => s.getCurrentSection());
   const editorRef = useRef<HTMLDivElement>(null);
+
+  // Determine reading period
+  const isReadingPeriod = section?.readingPeriodMinutes 
+    ? timerSeconds > (section.timeMinutes - section.readingPeriodMinutes) * 60
+    : false;
+
+  const readingPeriodMinutesLeft = isReadingPeriod && section?.readingPeriodMinutes
+    ? Math.ceil((timerSeconds - (section.timeMinutes - section.readingPeriodMinutes) * 60) / 60)
+    : 0;
 
   // Load saved essay content when question changes
   useEffect(() => {
@@ -168,6 +178,13 @@ export const EssayFRQBlock: React.FC<EssayFRQBlockProps> = ({ question }) => {
           </button>
         ))}
       </div>
+
+      {/* ── Reading Period Banner ── */}
+      {isReadingPeriod && (
+        <div style={{ padding: '12px', background: '#222', color: '#ccc', borderRadius: '4px', border: '1px solid #444', margin: '0 24px 16px', fontWeight: 500, textAlign: 'center' }}>
+          Optional Reading Period: {readingPeriodMinutesLeft} minute{readingPeriodMinutesLeft !== 1 ? 's' : ''} remaining.
+        </div>
+      )}
 
       {/* ── Rich Text Editor ── */}
       <div

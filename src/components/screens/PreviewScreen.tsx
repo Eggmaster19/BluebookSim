@@ -54,9 +54,19 @@ export const PreviewScreen: React.FC = () => {
                 </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="json-input-label" style={{ marginBottom: 0, color: '#aaa' }}>Time Limit</label>
-                    <span style={{ fontSize: '15px', color: '#fff', fontWeight: 500 }}>{section.timeMinutes} minutes</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <label className="json-input-label" style={{ marginBottom: '4px', color: '#aaa' }}>Time Limit</label>
+                      {section.suggestedTimeMinutes && (
+                        <div style={{ fontSize: '12px', color: '#888' }}>
+                          Suggested: {section.suggestedTimeMinutes} mins
+                          {section.defaultTimeMinutes && ` (Standard: ${section.defaultTimeMinutes} mins)`}
+                        </div>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '16px', color: '#fff', fontWeight: 500, alignSelf: 'flex-end', paddingBottom: '2px' }}>
+                      {section.timeMinutes} minutes
+                    </span>
                   </div>
                   <input 
                     type="range" 

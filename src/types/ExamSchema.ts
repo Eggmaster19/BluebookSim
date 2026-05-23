@@ -48,7 +48,10 @@ export interface ExamSection {
   id: string;
   title: string;           // e.g. "Section I, Part A - No Calculator Allowed"
   calculatorAllowed: boolean;
-  timeMinutes: number;
+  timeMinutes: number;     // The actual time limit applied to the section
+  defaultTimeMinutes?: number; // The standard time for this section
+  suggestedTimeMinutes?: number; // Suggested time based on number of questions
+  readingPeriodMinutes?: number; // E.g. 10 minutes reading period for Econ FRQ
   directions: string;      // HTML/text for the directions screen
   questions: Question[];
   breakAfterMinutes: number | null; // null = no break (last section)

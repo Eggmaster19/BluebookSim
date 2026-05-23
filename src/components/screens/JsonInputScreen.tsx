@@ -152,32 +152,26 @@ function splitIntoSections(
       q.id = `${template.sectionId}-${idx + 1}`;
     });
 
-    // Calculate dynamic background time allocation based on number of questions
-    let sectionTime = template.timeMinutes;
-    if (examType === 'calc_ab' || examType === 'calc_bc') {
-      if (template.sectionTag === '1A') sectionTime = sectionQuestions.length * 2;
-      else if (template.sectionTag === '1B') sectionTime = sectionQuestions.length * 3;
-      else if (template.sectionTag === '2A') sectionTime = sectionQuestions.length * 15;
-      else if (template.sectionTag === '2B') sectionTime = sectionQuestions.length * 15;
-    } else if (examType === 'bio') {
-      if (template.sectionTag === '1') sectionTime = Math.ceil(sectionQuestions.length * 1.5);
-      else if (template.sectionTag === '2') sectionTime = sectionQuestions.length * 15;
-    } else if (examType === 'lit') {
-      if (template.sectionTag === '1') sectionTime = Math.ceil(sectionQuestions.length * (80 / 60));
-      else if (template.sectionTag === '2') sectionTime = sectionQuestions.length * 40;
-    } else if (examType === 'phys_mech' || examType === 'phys_em') {
-      if (template.sectionTag === '1') sectionTime = sectionQuestions.length * 2;
-      else if (template.sectionTag === '2') sectionTime = sectionQuestions.length * 25;
-    } else if (examType === 'econ_macro' || examType === 'econ_micro') {
-      if (template.sectionTag === '1') sectionTime = Math.ceil(sectionQuestions.length * (70 / 60));
-      else if (template.sectionTag === '2') sectionTime = sectionQuestions.length * 20;
+    let defaultTimeMinutes = template.timeMinutes;
+    let suggestedTimeMinutes = template.timeMinutes;
+
+    if (template.timePerQuestion) {
+      suggestedTimeMinutes = Math.ceil(sectionQuestions.length * template.timePerQuestion);
+      if (template.readingPeriodMinutes) {
+        suggestedTimeMinutes += template.readingPeriodMinutes;
+      }
     }
+    
+    let sectionTime = suggestedTimeMinutes;
 
     sections.push({
       id: template.sectionId,
       title: template.title,
       calculatorAllowed: template.calculatorAllowed,
       timeMinutes: sectionTime,
+      defaultTimeMinutes: defaultTimeMinutes,
+      suggestedTimeMinutes: suggestedTimeMinutes,
+      readingPeriodMinutes: template.readingPeriodMinutes,
       breakAfterMinutes: template.breakAfterMinutes,
       frqMode: template.frqMode,
       directions: generateDirections({
@@ -239,6 +233,9 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
           title: sec.title ?? `Section ${si + 1}`,
           calculatorAllowed: sec.calculatorAllowed ?? false,
           timeMinutes: sec.timeMinutes ?? 60,
+          defaultTimeMinutes: sec.defaultTimeMinutes,
+          suggestedTimeMinutes: sec.suggestedTimeMinutes,
+          readingPeriodMinutes: sec.readingPeriodMinutes,
           breakAfterMinutes: sec.breakAfterMinutes ?? (si < parsed.sections.length - 1 ? 10 : null),
           frqMode: sec.frqMode,
           directions: sec.directions ?? generateDirections({
@@ -325,6 +322,8 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
         title: `Section I${hasFRQ ? ' - Free Response' : ' - Multiple Choice'}`,
         calculatorAllowed: false,
         timeMinutes: Math.max(30, questions.length * 2), // ~2 min per question, min 30
+        defaultTimeMinutes: 30,
+        suggestedTimeMinutes: Math.max(30, questions.length * 2),
         breakAfterMinutes: null,
         directions: generateDirections({
           subject: meta.subject,
