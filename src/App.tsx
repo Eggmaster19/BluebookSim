@@ -15,6 +15,7 @@ import { ExamScreen } from './components/screens/ExamScreen';
 import { CheckYourWorkScreen } from './components/screens/CheckYourWorkScreen';
 import { BreakScreen } from './components/screens/BreakScreen';
 import { DoneScreen } from './components/screens/DoneScreen';
+import { CalculatorOverlay } from './components/exam/CalculatorOverlay';
 
 // Styles
 import './styles/bluebook.css';
@@ -98,6 +99,8 @@ const App: React.FC = () => {
       {phase === 'directions' && <DirectionsScreen />}
       {phase === 'exam' && <ExamScreen />}
       {phase === 'check' && <CheckYourWorkScreen />}
+
+      <CalculatorOverlay />
 
       {/* ── Footer ── */}
       <Footer onResume={handleResume} />

@@ -7,6 +7,8 @@ export const Header: React.FC = () => {
   const timerHidden = useExamStore((s) => s.timerHidden);
   const toggleTimerHidden = useExamStore((s) => s.toggleTimerHidden);
   const exitHistoryView = useExamStore((s) => s.exitHistoryView);
+  const toggleCalculator = useExamStore((s) => s.toggleCalculator);
+  const isCalculatorOpen = useExamStore((s) => s.isCalculatorOpen);
 
   const [moreOpen, setMoreOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -63,7 +65,11 @@ export const Header: React.FC = () => {
           <span>Highlights &amp; Notes</span>
         </div>
         {section.calculatorAllowed && (
-          <div className="bb-header__tool">
+          <div
+            className={`bb-header__tool ${isCalculatorOpen ? 'bb-header__tool--active' : ''}`}
+            onClick={toggleCalculator}
+            style={{ cursor: 'pointer' }}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="4" y="2" width="16" height="20" rx="2" />
               <line x1="8" y1="6" x2="16" y2="6" />

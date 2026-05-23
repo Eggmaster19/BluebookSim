@@ -39,7 +39,7 @@ function normalizeQuestion(raw: any, index: number): Question & { _sectionTag?: 
       questionType: 'frq',
       text: raw.text ?? '',
       parts: (raw.parts ?? []).map((p: any) => ({
-        partLabel: p.partLabel ?? p.part ?? '',
+        partLabel: p.partLabel ?? p.part ?? p.id ?? '',
         text: p.text ?? '',
         ...(p.type && { type: p.type }),
         ...(p.stimulus && { stimulus: p.stimulus }),

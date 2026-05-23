@@ -54,6 +54,10 @@ interface ExamState {
   // ── Answer Eliminator Mode ──
   eliminatorMode: boolean;
 
+  // ── Calculator ──
+  isCalculatorOpen: boolean;
+  calculatorMode: 'scientific' | 'graphing' | '4-function' | 'none';
+
   // ── History Viewing ──
   /** When non-null, we are viewing a historical result (read-only) */
   viewingHistoryId: string | null;
@@ -100,6 +104,11 @@ interface ExamState {
   // Eliminator Mode
   toggleEliminatorMode: () => void;
 
+  // Calculator
+  toggleCalculator: () => void;
+  closeCalculator: () => void;
+  setCalculatorMode: (mode: 'scientific' | 'graphing' | '4-function' | 'none') => void;
+
   // History Viewing
   loadHistoryEntry: (id: string) => void;
   exitHistoryView: () => void;
@@ -133,6 +142,8 @@ export const useExamStore = create<ExamState>()(
       breakDuration: 0,
       navModalOpen: false,
       eliminatorMode: false,
+      isCalculatorOpen: false,
+      calculatorMode: 'none',
       viewingHistoryId: null,
       _hasHydrated: false,
 
@@ -171,6 +182,7 @@ export const useExamStore = create<ExamState>()(
           timerHidden: false,
           breakDuration: 0,
           navModalOpen: false,
+          isCalculatorOpen: false,
           viewingHistoryId: null,
         });
       },
@@ -305,6 +317,7 @@ export const useExamStore = create<ExamState>()(
             timerSeconds: nextSection.timeMinutes * 60,
             timerRunning: false,
             navModalOpen: false,
+            isCalculatorOpen: false,
             breakDuration: breakMins * 60,
           });
         } else {
@@ -317,6 +330,10 @@ export const useExamStore = create<ExamState>()(
       closeNavModal: () => set({ navModalOpen: false }),
 
       toggleEliminatorMode: () => set({ eliminatorMode: !get().eliminatorMode }),
+
+      toggleCalculator: () => set({ isCalculatorOpen: !get().isCalculatorOpen }),
+      closeCalculator: () => set({ isCalculatorOpen: false }),
+      setCalculatorMode: (mode) => set({ calculatorMode: mode }),
 
       tickBreak: () => {
         const state = get();
@@ -349,6 +366,7 @@ export const useExamStore = create<ExamState>()(
           breakDuration: 0,
           navModalOpen: false,
           eliminatorMode: false,
+          isCalculatorOpen: false,
           flagged: {},
           eliminated: {},
           selectedExamType: null,
@@ -377,6 +395,7 @@ export const useExamStore = create<ExamState>()(
           breakDuration: 0,
           navModalOpen: false,
           eliminatorMode: false,
+          isCalculatorOpen: false,
         });
       },
 
@@ -441,7 +460,7 @@ export const useExamStore = create<ExamState>()(
         breakDuration: state.breakDuration,
         viewingHistoryId: state.viewingHistoryId,
         // NOTE: imageBlobs are ObjectURLs and die on reload — not persisted.
-        // timerRunning, navModalOpen, eliminatorMode are transient — not persisted.
+        // timerRunning, navModalOpen, eliminatorMode, isCalculatorOpen are transient — not persisted.
       }),
       onRehydrateStorage: () => {
         return (state, error) => {
@@ -456,6 +475,7 @@ export const useExamStore = create<ExamState>()(
               timerRunning: false,
               navModalOpen: false,
               eliminatorMode: false,
+              isCalculatorOpen: false,
               imageBlobs: {},
             });
           } else {

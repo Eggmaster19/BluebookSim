@@ -48,6 +48,7 @@ export interface ExamSection {
   id: string;
   title: string;           // e.g. "Section I, Part A - No Calculator Allowed"
   calculatorAllowed: boolean;
+  calculatorType?: 'scientific' | 'graphing' | 'both' | '4-function' | 'none';
   timeMinutes: number;     // The actual time limit applied to the section
   defaultTimeMinutes?: number; // The standard time for this section
   suggestedTimeMinutes?: number; // Suggested time based on number of questions

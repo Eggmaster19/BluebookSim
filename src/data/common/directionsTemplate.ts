@@ -87,9 +87,13 @@ function generateCalculusDirections(subject: string, options: DirectionOptions):
 
   let calculatorText = '';
   if (calculatorPolicy === 'none') {
-    calculatorText = '<p><strong>A calculator is not allowed for this part of the exam.</strong></p>';
+    calculatorText = '<p><strong>No calculator is allowed for this part of the exam.</strong></p>';
   } else if (calculatorPolicy === 'required') {
-    calculatorText = '<p><strong>A graphing calculator is required for some questions on this part of the exam.</strong> You may use a handheld calculator or the calculator available in this application. <strong>Make sure your calculator is in the correct mode (e.g., radian mode for Calculus).</strong></p>';
+    if (isFRQ) {
+      calculatorText = '<p><strong>A graphing calculator is required for the questions on this part of the exam.</strong> You may use a handheld graphing calculator or the calculator available in this application. <strong>Make sure your calculator is in radian mode.</strong></p>';
+    } else {
+      calculatorText = '<p><strong>A graphing calculator is required for some questions on this part of the exam.</strong> You may use a handheld calculator or the calculator available in this application. <strong>Make sure your calculator is in radian mode.</strong></p>';
+    }
   } else {
     calculatorText = '<p><strong>A calculator is allowed for this part of the exam.</strong></p>';
   }
@@ -97,19 +101,39 @@ function generateCalculusDirections(subject: string, options: DirectionOptions):
   let instructionsText = '';
   if (isFRQ) {
     instructionsText = `
-<p>You may use the available paper for scratch work and planning, but only work written in the free-response booklet will be scored. In the free-response booklet, write your solution to each part of each question in the space provided for that part. For questions that have sub-parts, be sure to label those clearly in your solution. Use a pencil or a pen with black or dark blue ink.</p>
+<p>You may use the available paper for scratch work and planning, but only work written in the free-response booklet will be scored. Any work done on scratch paper will not be scored. In the free-response booklet, write your solution to each part of each question in the space provided for that part. For questions that have sub-parts, be sure to label those clearly in your solution. Use a pencil or a pen with black or dark blue ink.</p>`;
+
+    if (calculatorPolicy === 'required') {
+      instructionsText += `\n<p>You are permitted to use your calculator to solve an equation, find the derivative of a function at a point, or calculate the value of a definite integral. However, you must clearly indicate the setup of your question, namely the equation, function, or integral you are using. If you use other built-in features or programs, you must show the mathematical steps necessary to produce your results.</p>`;
+    }
+
+    instructionsText += `
 <p>Show all of your work, even though a question may not explicitly remind you to do so. Clearly label any functions, graphs, tables, or other objects that you use. Justifications require that you give mathematical reasons and that you verify the needed conditions under which relevant theorems, properties, definitions, or tests are applied. Your work will be scored on the correctness and completeness of your methods as well as your answers. Answers without supporting work will usually not receive credit.</p>
-<p>Your work must be expressed in standard mathematical notation rather than calculator syntax.</p>`;
+<p>Your work must be expressed in standard mathematical notation rather than calculator syntax. For example, &#8747;<sub>1</sub><sup>5</sup> <em>x</em><sup>2</sup> <em>dx</em> may not be written as fnInt(X<sup>2</sup>, X, 1, 5).</p>
+<p>Unless otherwise specified, answers (numeric or algebraic) need not be simplified. If you use decimal approximations in calculations, your work will be scored on accuracy. Unless otherwise specified, your final answers should be accurate to three places after the decimal point.</p>
+<p>Unless otherwise specified, the domain of a function <em>f</em> is assumed to be the set of all real numbers <em>x</em> for which <em>f(x)</em> is a real number.</p>`;
   } else {
     instructionsText = `
-<p>Solve each problem. You may use the available paper for scratch work. After examining the choices, select the best of the choices given.</p>
-<p>The exact numerical value of the correct answer does not always appear among the choices given. When this happens, select from among the choices the number that best approximates the exact numerical value.</p>`;
+<p>Solve each problem. You may use the available paper for scratch work. After examining the choices, select the best of the choices given.</p>`;
+
+    if (calculatorPolicy === 'required') {
+      instructionsText += `\n<p>The exact numerical value of the correct answer does not always appear among the choices given. When this happens, select from among the choices the number that best approximates the exact numerical value.</p>`;
+    }
+
+    instructionsText += `\n<p>Unless otherwise specified, the domain of a function <em>f</em> is assumed to be the set of all real numbers <em>x</em> for which <em>f(x)</em> is a real number.</p>
+<p>The inverse of a trigonometric function <em>f</em> may be indicated using the inverse function notation <em>f</em><sup>-1</sup> or with the prefix "arc" (e.g., sin<sup>-1</sup> <em>x</em> = arcsin <em>x</em>).</p>`;
   }
 
+  const timeDisplay = timeMinutes === 60 ? '1 hour' : 
+                      timeMinutes > 60 && timeMinutes % 60 === 0 ? `${timeMinutes / 60} hours` :
+                      `${timeMinutes} minutes`;
+
+  const shortSectionTitle = sectionTitle.split(' — ')[0].split(' - ')[0];
+
   return `<h1>${sectionTitle} Directions</h1>
-<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day and has fewer questions than the exam.</strong></p>
+<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day${!isFRQ ? ' and has fewer multiple-choice questions than the exam' : ''}.</strong></p>
 <p style="text-align:center">${subject}</p>
-<p>${sectionTitle} has ${questionCount} ${isFRQ ? 'free-response' : 'multiple choice'} questions and lasts ${timeMinutes} minutes.</p>
+<p>${shortSectionTitle} has ${questionCount} ${isFRQ ? 'free-response' : 'multiple-choice'} questions and lasts ${timeDisplay}.</p>
 ${calculatorText}
 ${instructionsText}
 <p>You can go back and forth between questions in this part until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
