@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Stimulus } from '../../types/ExamSchema';
 import { KaTeXRenderer } from '../KaTeXRenderer';
-import { BlockMath } from 'react-katex';
+import katex from 'katex';
 import { MermaidRenderer } from '../MermaidRenderer';
 import { FunctionPlotRenderer } from '../FunctionPlotRenderer';
 import { SVGRenderer } from '../SVGRenderer';
@@ -33,12 +33,24 @@ export function renderStimulus(stimulus: Stimulus) {
         </div>
       );
 
-    case 'katex':
+    case 'katex': {
+      let html = '';
+      try {
+        html = katex.renderToString(stimulus.data as string, {
+          displayMode: true,
+          throwOnError: false,
+          errorColor: '#cc0000'
+        });
+      } catch (e) {
+        html = `<span class="katex-error" style="color: #cc0000;">${stimulus.data}</span>`;
+      }
       return (
-        <div className="bb-stimulus__katex">
-          <BlockMath math={stimulus.data as string} />
-        </div>
+        <div 
+          className="bb-stimulus__katex" 
+          dangerouslySetInnerHTML={{ __html: html }} 
+        />
       );
+    }
 
     case 'table':
       return renderTable(stimulus.data);

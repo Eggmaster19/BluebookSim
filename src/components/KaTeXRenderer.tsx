@@ -1,6 +1,6 @@
 import React from 'react';
+import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import { InlineMath, BlockMath } from 'react-katex';
 
 interface KaTeXRendererProps {
   text: string;
@@ -22,11 +22,18 @@ export const KaTeXRenderer: React.FC<KaTeXRendererProps> = ({ text, display = fa
       {parts.map((part, i) => {
         if (part.startsWith('$$') && part.endsWith('$$')) {
           const math = part.slice(2, -2);
-          return display ? (
-            <BlockMath key={i} math={math} />
-          ) : (
-            <InlineMath key={i} math={math} />
-          );
+          let html = '';
+          try {
+            html = katex.renderToString(math, {
+              displayMode: display,
+              throwOnError: false, // Prevents crashing, renders raw string + error color
+              errorColor: '#cc0000',
+            });
+          } catch (e: any) {
+            html = `<span class="katex-error" style="color: #cc0000;" title="${e?.message || 'Math rendering error'}">${math}</span>`;
+          }
+          
+          return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
         }
         // Render non-math as HTML to support <em>, <strong>, etc.
         return <span key={i} dangerouslySetInnerHTML={{ __html: part }} />;
