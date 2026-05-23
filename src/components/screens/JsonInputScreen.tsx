@@ -28,9 +28,23 @@ interface ParseResult {
   questionCount: number;
 }
 
+function stripJsonFence(raw: string): string {
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return match ? match[1].trim() : trimmed;
+}
+
+function normalizeSectionTag(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim().toUpperCase() : undefined;
+}
+
+function sectionTagList(examType: string): string {
+  return (SECTION_CONFIGS[examType] ?? []).map((s) => `"${s.sectionTag}"`).join(', ');
+}
+
 function normalizeQuestion(raw: any, index: number): Question & { _sectionTag?: string } {
   const id = raw.id ?? String(index + 1);
-  const sectionTag = raw.section ?? undefined;
+  const sectionTag = normalizeSectionTag(raw.section);
 
   // Detect FRQ
   if (raw.type === 'frq' || raw.questionType === 'frq' || raw.parts) {
@@ -81,9 +95,9 @@ function collectImageFilenames(questions: Question[]): string[] {
 
 /**
  * Split a flat array of questions into exam sections using the section config.
- * Uses the `_sectionTag` on each question to route it to the correct section.
- * Questions without a tag are distributed by type (MCQ/FRQ) and split evenly
- * across matching sections.
+ * Uses the required `_sectionTag` on each question to route it to the exact
+ * AP section template. The template is the only source of timing, calculator,
+ * break, FRQ mode, and directions metadata.
  */
 function splitIntoSections(
   questions: (Question & { _sectionTag?: string })[],
@@ -93,52 +107,31 @@ function splitIntoSections(
   const config = SECTION_CONFIGS[examType];
   if (!config) return [];
 
-  // Bucket questions by section tag
+  const templatesByTag = new Map(config.map((template) => [template.sectionTag.toUpperCase(), template]));
+
+  // Bucket questions by required section tag
   const tagBuckets: Record<string, Question[]> = {};
-  const untaggedMCQ: Question[] = [];
-  const untaggedFRQ: Question[] = [];
 
-  for (const q of questions) {
-    if (q._sectionTag) {
-      const tag = q._sectionTag.toUpperCase();
-      if (!tagBuckets[tag]) tagBuckets[tag] = [];
-      // Strip _sectionTag before storing
-      const { _sectionTag, ...clean } = q as any;
-      tagBuckets[tag].push(clean);
-    } else {
-      // Strip _sectionTag before storing
-      const { _sectionTag, ...clean } = q as any;
-      if (q.questionType === 'frq') {
-        untaggedFRQ.push(clean);
-      } else {
-        untaggedMCQ.push(clean);
-      }
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    const tag = q._sectionTag;
+    if (!tag) {
+      throw new Error(`Question ${i + 1} is missing required "section". Use ${sectionTagList(examType)} for this exam.`);
     }
-  }
 
-  // Distribute untagged questions evenly across matching sections
-  if (untaggedMCQ.length > 0) {
-    const mcqSections = config.filter((s) => s.questionType === 'mcq');
-    const perSection = Math.ceil(untaggedMCQ.length / mcqSections.length);
-    mcqSections.forEach((sec, i) => {
-      const chunk = untaggedMCQ.slice(i * perSection, (i + 1) * perSection);
-      if (chunk.length > 0) {
-        if (!tagBuckets[sec.sectionTag]) tagBuckets[sec.sectionTag] = [];
-        tagBuckets[sec.sectionTag].push(...chunk);
-      }
-    });
-  }
+    const template = templatesByTag.get(tag);
+    if (!template) {
+      throw new Error(`Question ${i + 1} has invalid section "${tag}". Use ${sectionTagList(examType)} for this exam.`);
+    }
 
-  if (untaggedFRQ.length > 0) {
-    const frqSections = config.filter((s) => s.questionType === 'frq');
-    const perSection = Math.ceil(untaggedFRQ.length / frqSections.length);
-    frqSections.forEach((sec, i) => {
-      const chunk = untaggedFRQ.slice(i * perSection, (i + 1) * perSection);
-      if (chunk.length > 0) {
-        if (!tagBuckets[sec.sectionTag]) tagBuckets[sec.sectionTag] = [];
-        tagBuckets[sec.sectionTag].push(...chunk);
-      }
-    });
+    if (q.questionType !== template.questionType) {
+      throw new Error(`Question ${i + 1} is tagged "${tag}", but that section expects ${template.questionType.toUpperCase()} questions.`);
+    }
+
+    // Strip _sectionTag before storing
+    const { _sectionTag, ...clean } = q as any;
+    if (!tagBuckets[tag]) tagBuckets[tag] = [];
+    tagBuckets[tag].push(clean);
   }
 
   // Build ExamSection objects — only include sections that have questions
@@ -152,7 +145,7 @@ function splitIntoSections(
       q.id = `${template.sectionId}-${idx + 1}`;
     });
 
-    let defaultTimeMinutes = template.timeMinutes;
+    const defaultTimeMinutes = template.timeMinutes;
     let suggestedTimeMinutes = template.timeMinutes;
 
     if (template.timePerQuestion) {
@@ -162,12 +155,12 @@ function splitIntoSections(
       }
     }
     
-    let sectionTime = suggestedTimeMinutes;
+    const sectionTime = defaultTimeMinutes;
 
     sections.push({
       id: template.sectionId,
       title: template.title,
-      calculatorAllowed: template.calculatorAllowed,
+      calculatorAllowed: template.calculatorType !== 'none',
       calculatorType: template.calculatorType,
       timeMinutes: sectionTime,
       defaultTimeMinutes: defaultTimeMinutes,
@@ -202,15 +195,16 @@ function splitIntoSections(
 function parseJsonInput(raw: string, examType: string): ParseResult {
   const empty: ParseResult = { exam: null, error: null, requiredImages: [], questionCount: 0 };
 
-  if (!raw.trim()) return empty;
+  const jsonText = stripJsonFence(raw);
+  if (!jsonText) return empty;
 
   let parsed: any;
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(jsonText);
   } catch (e: any) {
     // Attempt to handle concatenated JSON arrays (e.g., copied back-to-back)
     try {
-      const fixedRaw = `[${raw.trim().replace(/\]\s*\[/g, '],[')}]`;
+      const fixedRaw = `[${jsonText.replace(/\]\s*\[/g, '],[')}]`;
       const parsedMultiple = JSON.parse(fixedRaw);
       if (Array.isArray(parsedMultiple) && parsedMultiple.every(Array.isArray)) {
         parsed = parsedMultiple.flat();
@@ -227,13 +221,42 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
   // ── Case 1: Full Exam object (has metadata + sections) ──
   if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.sections) {
     try {
+      if (SECTION_CONFIGS[examType]) {
+        const questions = parsed.sections.flatMap((sec: any, si: number) => {
+          const inheritedSection = normalizeSectionTag(sec.section ?? sec.sectionTag ?? sec.tag);
+          return (sec.questions ?? []).map((q: any, qi: number) =>
+            normalizeQuestion(q.section || !inheritedSection ? q : { ...q, section: inheritedSection }, si + qi)
+          );
+        });
+
+        const sections = splitIntoSections(questions, examType, meta);
+        const allQuestions = sections.flatMap((s) => s.questions);
+
+        const exam: Exam = {
+          metadata: {
+            title: parsed.metadata?.title ?? meta.title,
+            examType: parsed.metadata?.examType ?? meta.examType,
+            subject: parsed.metadata?.subject ?? meta.subject,
+          },
+          sections,
+        };
+
+        return {
+          exam,
+          error: null,
+          requiredImages: collectImageFilenames(allQuestions),
+          questionCount: allQuestions.length,
+        };
+      }
+
       const sections: ExamSection[] = parsed.sections.map((sec: any, si: number) => {
         const questions = (sec.questions ?? []).map((q: any, qi: number) => normalizeQuestion(q, qi));
+        const calculatorType = sec.calculatorType ?? (sec.calculatorAllowed ? 'scientific' : 'none');
         return {
           id: sec.id ?? `section-${si + 1}`,
           title: sec.title ?? `Section ${si + 1}`,
-          calculatorAllowed: sec.calculatorAllowed ?? false,
-          calculatorType: sec.calculatorType,
+          calculatorAllowed: calculatorType !== 'none',
+          calculatorType,
           timeMinutes: sec.timeMinutes ?? 60,
           defaultTimeMinutes: sec.defaultTimeMinutes,
           suggestedTimeMinutes: sec.suggestedTimeMinutes,
@@ -323,6 +346,7 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
         id: 'section-1',
         title: `Section I${hasFRQ ? ' - Free Response' : ' - Multiple Choice'}`,
         calculatorAllowed: false,
+        calculatorType: 'none',
         timeMinutes: Math.max(30, questions.length * 2), // ~2 min per question, min 30
         defaultTimeMinutes: 30,
         suggestedTimeMinutes: Math.max(30, questions.length * 2),

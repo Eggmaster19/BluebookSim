@@ -1,9 +1,9 @@
 import React from 'react';
 import type { MCQuestion } from '../../types/ExamSchema';
 import { useExamStore } from '../../store/examStore';
-import { KaTeXRenderer } from '../KaTeXRenderer';
 import { renderStimulus } from './StimulusRenderer';
 import { Bookmark } from 'lucide-react';
+import { HighlightedText } from '../highlights/HighlightedText';
 
 interface MCQBlockProps {
   question: MCQuestion;
@@ -45,13 +45,13 @@ export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
 
       {/* ── Question Text ── */}
       <div className="bb-question-text">
-        <KaTeXRenderer text={question.text} />
+        <HighlightedText text={question.text} questionId={question.id} areaId="question" />
       </div>
 
       {/* ── Options Stimulus (for grouped option images) ── */}
       {question.optionsStimulus && (
         <div className="bb-question-options-stimulus" style={{ margin: '16px 0' }}>
-          {renderStimulus(question.optionsStimulus)}
+          {renderStimulus(question.optionsStimulus, { questionId: question.id, areaId: 'options-stimulus' })}
         </div>
       )}
 
@@ -71,9 +71,9 @@ export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
                 <span className="bb-option__letter">{option.id}</span>
                 <span className="bb-option__text">
                   {option.type && option.type !== 'text' ? (
-                    renderStimulus({ type: option.type, data: option.text })
+                    renderStimulus({ type: option.type, data: option.text }, { questionId: question.id, areaId: `option-${option.id}` })
                   ) : (
-                    <KaTeXRenderer text={option.text} />
+                    <HighlightedText text={option.text} questionId={question.id} areaId={`option-${option.id}`} />
                   )}
                 </span>
               </div>

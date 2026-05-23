@@ -5,31 +5,49 @@ import katex from 'katex';
 import { MermaidRenderer } from '../MermaidRenderer';
 import { FunctionPlotRenderer } from '../FunctionPlotRenderer';
 import { SVGRenderer } from '../SVGRenderer';
+import { HighlightedText } from '../highlights/HighlightedText';
 
 interface StimulusRendererProps {
   stimulus: Stimulus;
   introText?: string;
+  questionId?: string;
+  areaId?: string;
 }
 
-export const StimulusRenderer: React.FC<StimulusRendererProps> = ({ stimulus, introText }) => {
+interface HighlightContext {
+  questionId: string;
+  areaId: string;
+}
+
+export const StimulusRenderer: React.FC<StimulusRendererProps> = ({ stimulus, introText, questionId, areaId = 'stimulus' }) => {
+  const context = questionId ? { questionId, areaId } : undefined;
+
   return (
     <div className="bb-stimulus">
       {introText && (
         <div className="bb-stimulus__intro">
-          <KaTeXRenderer text={introText} />
+          {context ? (
+            <HighlightedText text={introText} questionId={context.questionId} areaId={`${context.areaId}-intro`} />
+          ) : (
+            <KaTeXRenderer text={introText} />
+          )}
         </div>
       )}
-      {renderStimulus(stimulus)}
+      {renderStimulus(stimulus, context)}
     </div>
   );
 };
 
-export function renderStimulus(stimulus: Stimulus) {
+export function renderStimulus(stimulus: Stimulus, context?: HighlightContext) {
   switch (stimulus.type) {
     case 'text':
       return (
         <div className="bb-stimulus__intro">
-          <KaTeXRenderer text={stimulus.data as string} />
+          {context ? (
+            <HighlightedText text={stimulus.data as string} questionId={context.questionId} areaId={context.areaId} />
+          ) : (
+            <KaTeXRenderer text={stimulus.data as string} />
+          )}
         </div>
       );
 
@@ -78,7 +96,11 @@ export function renderStimulus(stimulus: Stimulus) {
     default:
       return (
         <div className="bb-stimulus__intro">
-          <KaTeXRenderer text={stimulus.data as string} />
+          {context ? (
+            <HighlightedText text={stimulus.data as string} questionId={context.questionId} areaId={context.areaId} />
+          ) : (
+            <KaTeXRenderer text={stimulus.data as string} />
+          )}
         </div>
       );
   }

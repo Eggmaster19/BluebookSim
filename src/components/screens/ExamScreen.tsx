@@ -5,10 +5,16 @@ import { MCQBlock } from '../exam/MCQBlock';
 import { FRQBlock } from '../exam/FRQBlock';
 import { EssayFRQBlock } from '../exam/EssayFRQBlock';
 import type { FRQuestion } from '../../types/ExamSchema';
+import { NotesPanel } from '../highlights/NotesPanel';
+import { HighlightsLayer } from '../highlights/HighlightsLayer';
 
 export const ExamScreen: React.FC = () => {
   const question = useExamStore((s) => s.getCurrentQuestion());
   const section = useExamStore((s) => s.getCurrentSection());
+  const notesPanelOpen = useExamStore((s) => s.notesPanelOpen);
+  const hasQuestionNotes = useExamStore((s) =>
+    question ? s.highlights.some((highlight) => highlight.questionId === question.id && highlight.hasNote) : false
+  );
 
   if (!question) return <div>No question found.</div>;
 
@@ -40,11 +46,17 @@ export const ExamScreen: React.FC = () => {
               <StimulusRenderer
                 stimulus={question.stimulus}
                 introText={isFRQ && !isEssayMode ? question.text : undefined}
+                questionId={question.id}
+                areaId="stimulus"
               />
             )}
           </div>
 
           <div className="bb-split__divider" />
+
+          {notesPanelOpen && hasQuestionNotes && (
+            <NotesPanel questionId={question.id} splitPane />
+          )}
 
           <div className="bb-split__pane bb-split__pane--right">
             {question.questionType === 'mcq' ? (
@@ -54,13 +66,14 @@ export const ExamScreen: React.FC = () => {
             )}
           </div>
         </div>
+        <HighlightsLayer />
       </div>
     );
   }
 
   // ── Single Pane (no stimulus) ──
   return (
-    <div className="bb-main bb-main--single">
+    <div className={`bb-main bb-main--single ${notesPanelOpen && hasQuestionNotes ? 'bb-main--with-notes' : ''}`}>
       <div className="bb-single-content">
         {/* Only show paper-booklet notice for non-essay FRQs */}
         {isFRQ && !isEssayMode && (
@@ -74,6 +87,10 @@ export const ExamScreen: React.FC = () => {
           renderFRQ()
         )}
       </div>
+      {notesPanelOpen && hasQuestionNotes && (
+        <NotesPanel questionId={question.id} splitPane={false} />
+      )}
+      <HighlightsLayer />
     </div>
   );
 };

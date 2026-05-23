@@ -43,12 +43,28 @@ export interface FRQuestion {
 
 export type Question = MCQuestion | FRQuestion;
 
+export type CalculatorType = 'none' | 'scientific' | 'graphing' | 'both' | '4-function';
+export type HighlightColor = 'yellow' | 'blue' | 'pink';
+export type HighlightUnderline = 'solid' | 'dashed' | 'dotted' | 'none';
+
+export interface HighlightNote {
+  id: string;
+  questionId: string;
+  areaId: string;
+  text: string;
+  color: HighlightColor;
+  underline: HighlightUnderline;
+  note: string;
+  hasNote: boolean;
+  createdAt: number;
+}
+
 // ── Section ─────────────────────────────────────────────────────────
 export interface ExamSection {
   id: string;
   title: string;           // e.g. "Section I, Part A - No Calculator Allowed"
   calculatorAllowed: boolean;
-  calculatorType?: 'scientific' | 'graphing' | 'both' | '4-function' | 'none';
+  calculatorType: CalculatorType;
   timeMinutes: number;     // The actual time limit applied to the section
   defaultTimeMinutes?: number; // The standard time for this section
   suggestedTimeMinutes?: number; // Suggested time based on number of questions

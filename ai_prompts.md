@@ -51,11 +51,12 @@ The simulator supports **six** programmatic rendering types plus image as a fall
 No matter what subject you are converting, the AI must follow these strict rules:
 
 1. **Sequential Numbering:** Completely ignore the question numbers written on the physical exam pages. Number all questions sequentially from `1` to `N` based on the order they are provided.
-2. **Strict JSON:** Output *only* valid JSON. Do not include introductory text like "Here is the JSON."
-3. **Minimize Image Usage:** Always prefer programmatic types (`katex`, `function-plot`, `mermaid`, `table`, `svg`) over `image`. Only use `image` for content that is truly impossible to replicate (photographs, slope fields, shaded regions, anatomical drawings).
-4. **Image Filenames:** When `image` is unavoidable, the filename MUST include the **ORIGINAL** question number from the PDF (e.g., `"original_q76_graph.png"`) so the user can find and screenshot it.
-5. **Complex Answer Options:** MCQ options can also have a `"type"` field (e.g., `"type": "mermaid"`) with diagram syntax in the `"text"` field.
-6. **FRQ Parts:** Each FRQ sub-part can have its own `"stimulus"` or `"type"` field if it contains a diagram specific to that part.
+2. **Required Section Label:** Every question object MUST include a `"section"` field. The simulator uses this label to assign official timing, calculator type, breaks, directions, and FRQ mode. AP Calculus uses `"1A"`, `"1B"`, `"2A"`, `"2B"`; the other current AP exams use `"1"` for multiple choice and `"2"` for free response.
+3. **Strict JSON:** Output *only* valid JSON. Do not include introductory text like "Here is the JSON."
+4. **Minimize Image Usage:** Always prefer programmatic types (`katex`, `function-plot`, `mermaid`, `table`, `svg`) over `image`. Only use `image` for content that is truly impossible to replicate (photographs, slope fields, shaded regions, anatomical drawings).
+5. **Image Filenames:** When `image` is unavoidable, the filename MUST include the **ORIGINAL** question number from the PDF (e.g., `"original_q76_graph.png"`) so the user can find and screenshot it.
+6. **Complex Answer Options:** MCQ options can also have a `"type"` field (e.g., `"type": "mermaid"`) with diagram syntax in the `"text"` field.
+7. **FRQ Parts:** Each FRQ sub-part can have its own `"stimulus"` or `"type"` field if it contains a diagram specific to that part.
 
 ---
 
@@ -66,19 +67,21 @@ No matter what subject you are converting, the AI must follow these strict rules
 > You are an expert AP Calculus data processor. I will provide you with images or text from an AP Calculus AB practice exam. Your job is to convert them into a strict JSON array of question objects following these rules:
 > 
 > 1. **Numbering:** Number questions sequentially starting from 1.
-> 2. **Math Formatting:** All math must be wrapped in `$$` for KaTeX rendering.
-> 3. **RENDERING PRIORITY** (use the FIRST type that fits — avoid "image" whenever possible):
+> 2. **Section Tagging:** Every question MUST include `"section"`. Use `"1A"` for Section I Part A no-calculator MCQ, `"1B"` for Section I Part B graphing-calculator MCQ, `"2A"` for Section II Part A graphing-calculator FRQ, and `"2B"` for Section II Part B no-calculator FRQ.
+> 3. **Math Formatting:** All math must be wrapped in `$$` for KaTeX rendering.
+> 4. **RENDERING PRIORITY** (use the FIRST type that fits — avoid "image" whenever possible):
 >    - `"katex"` — piecewise functions, systems of equations. Raw LaTeX in `data`.
 >    - `"function-plot"` — simple 2D graphs. JSON in `data`: `{"fn": "x^2", "xDomain": [-5, 5]}`
 >    - `"table"` — value tables. JSON in `data`: `{"headers": [...], "rows": [...]}`
 >    - `"mermaid"` — sign charts, number lines, flowcharts. Mermaid.js syntax.
 >    - `"svg"` — custom coordinate diagrams. Raw SVG markup.
 >    - `"image"` — LAST RESORT. Filename must include original question number.
-> 4. **FRQ Rules:** Use `"questionType": "frq"` with `"parts"` array. Parts can have `"stimulus"` or `"type"`.
-> 5. **Output Format:**
+> 5. **FRQ Rules:** Use `"questionType": "frq"` with `"parts"` array. Parts can have `"stimulus"` or `"type"`.
+> 6. **Output Format:**
 > ```json
 > {
 >   "id": "1",
+>   "section": "1A",
 >   "stimulus": { "type": "function-plot", "data": "{\"fn\": \"x^2 - 4\", \"xDomain\": [-4, 4]}" },
 >   "text": "The graph of $$f$$ is shown above. At what value of $$x$$ does $$f$$ have a local minimum?",
 >   "options": [
@@ -112,6 +115,7 @@ No matter what subject you are converting, the AI must follow these strict rules
 > ```json
 > {
 >   "id": "1",
+>   "section": "1",
 >   "stimulus": { "type": "mermaid", "data": "graph TD;\n A[DNA] --> B[RNA];" },
 >   "text": "Based on the flowchart above, what is the next step?",
 >   "options": [
@@ -141,6 +145,7 @@ FRQs for subjects like Calculus and Biology require a different structure than M
 > ```json
 > {
 >   "id": "1",
+>   "section": "2",
 >   "questionType": "frq",
 >   "stimulus": { "type": "table", "data": "{\"headers\":[\"$$t$$\",\"$$0$$\",\"$$2$$\",\"$$4$$\"],\"rows\":[[\"$$R(t)$$\",\"$$2935$$\",\"$$3653$$\",\"$$3442$$\"]]}" },
 >   "text": "The rate at which vehicles cross a bridge is modeled by $$R(t)$$.",

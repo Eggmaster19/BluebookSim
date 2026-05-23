@@ -2,6 +2,23 @@ import React, { useEffect, useRef, useState } from 'react';
 import Draggable from 'react-draggable';
 import { useExamStore } from '../../store/examStore';
 
+type DesmosCalculatorInstance = {
+  destroy: () => void;
+  resize: () => void;
+};
+
+type DesmosApi = {
+  GraphingCalculator: (element: HTMLElement, options: Record<string, unknown>) => DesmosCalculatorInstance;
+  FourFunctionCalculator: (element: HTMLElement, options: Record<string, unknown>) => DesmosCalculatorInstance;
+  ScientificCalculator: (element: HTMLElement, options: Record<string, unknown>) => DesmosCalculatorInstance;
+};
+
+declare global {
+  interface Window {
+    Desmos?: DesmosApi;
+  }
+}
+
 export const CalculatorOverlay: React.FC = () => {
   const isCalculatorOpen = useExamStore((s) => s.isCalculatorOpen);
   const closeCalculator = useExamStore((s) => s.closeCalculator);
@@ -10,26 +27,29 @@ export const CalculatorOverlay: React.FC = () => {
   const getCurrentSection = useExamStore((s) => s.getCurrentSection);
 
   const section = getCurrentSection();
-  const calculatorType = section?.calculatorType;
+  const calculatorType = section?.calculatorType ?? 'none';
+  const calculatorAvailable = calculatorType !== 'none';
 
   const [isExpanded, setIsExpanded] = useState(false);
   const draggableNodeRef = useRef<HTMLDivElement>(null);
   const calcContainerRef = useRef<HTMLDivElement>(null);
-  const calculatorInstance = useRef<any>(null);
+  const calculatorInstance = useRef<DesmosCalculatorInstance | null>(null);
 
   useEffect(() => {
-    if (!isCalculatorOpen || !calcContainerRef.current) return;
+    if (!isCalculatorOpen || !calculatorAvailable || !calcContainerRef.current) return;
 
     // Default to the section's base type, or the user's toggle if 'both'
     let modeToLoad = calculatorType;
     if (calculatorType === 'both') {
-      modeToLoad = calculatorMode !== 'none' ? calculatorMode : 'scientific';
-      if (calculatorMode === 'none') {
+      modeToLoad = calculatorMode === 'graphing' || calculatorMode === 'scientific'
+        ? calculatorMode
+        : 'scientific';
+      if (calculatorMode !== modeToLoad) {
         setCalculatorMode('scientific');
       }
     }
 
-    const Desmos = (window as any).Desmos;
+    const Desmos = window.Desmos;
     if (!Desmos) {
       console.error('Desmos API not loaded');
       return;
@@ -60,7 +80,7 @@ export const CalculatorOverlay: React.FC = () => {
         calculatorInstance.current = null;
       }
     };
-  }, [isCalculatorOpen, calculatorType, calculatorMode, setCalculatorMode]);
+  }, [isCalculatorOpen, calculatorAvailable, calculatorType, calculatorMode, setCalculatorMode]);
 
   // Adjust resize logic when toggling expand/minimize
   useEffect(() => {
@@ -69,7 +89,7 @@ export const CalculatorOverlay: React.FC = () => {
     }
   }, [isExpanded]);
 
-  if (!isCalculatorOpen) return null;
+  if (!isCalculatorOpen || !calculatorAvailable) return null;
 
   return (
     <Draggable handle=".calculator-header" bounds="body" nodeRef={draggableNodeRef}>

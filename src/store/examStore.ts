@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { idbStorage } from './idbStorage';
 import { useHistoryStore } from './historyStore';
-import type { Exam, Question } from '../types/ExamSchema';
+import type { Exam, HighlightColor, HighlightNote, HighlightUnderline, Question } from '../types/ExamSchema';
 
 export type ExamPhase = 'preview' | 'directions' | 'exam' | 'check' | 'break' | 'done';
 
@@ -58,6 +58,13 @@ interface ExamState {
   isCalculatorOpen: boolean;
   calculatorMode: 'scientific' | 'graphing' | '4-function' | 'none';
 
+  highlightsActive: boolean;
+  highlightColor: HighlightColor;
+  highlightUnderline: HighlightUnderline;
+  highlights: HighlightNote[];
+  notesPanelOpen: boolean;
+  notesPanelWidth: number;
+
   // ── History Viewing ──
   /** When non-null, we are viewing a historical result (read-only) */
   viewingHistoryId: string | null;
@@ -109,6 +116,17 @@ interface ExamState {
   closeCalculator: () => void;
   setCalculatorMode: (mode: 'scientific' | 'graphing' | '4-function' | 'none') => void;
 
+  toggleHighlightsActive: () => void;
+  setHighlightColor: (color: HighlightColor) => void;
+  setHighlightUnderline: (underline: HighlightUnderline) => void;
+  addHighlight: (highlight: Omit<HighlightNote, 'id' | 'createdAt' | 'note' | 'hasNote'>) => string;
+  updateHighlightStyle: (id: string, updates: Partial<Pick<HighlightNote, 'color' | 'underline'>>) => void;
+  removeHighlight: (id: string) => void;
+  addNoteToHighlight: (id: string) => void;
+  updateNoteText: (id: string, note: string) => void;
+  setNotesPanelOpen: (open: boolean) => void;
+  setNotesPanelWidth: (width: number) => void;
+
   // History Viewing
   loadHistoryEntry: (id: string) => void;
   exitHistoryView: () => void;
@@ -144,6 +162,12 @@ export const useExamStore = create<ExamState>()(
       eliminatorMode: false,
       isCalculatorOpen: false,
       calculatorMode: 'none',
+      highlightsActive: false,
+      highlightColor: 'yellow',
+      highlightUnderline: 'none',
+      highlights: [],
+      notesPanelOpen: false,
+      notesPanelWidth: 280,
       viewingHistoryId: null,
       _hasHydrated: false,
 
@@ -183,6 +207,10 @@ export const useExamStore = create<ExamState>()(
           breakDuration: 0,
           navModalOpen: false,
           isCalculatorOpen: false,
+          calculatorMode: 'none',
+          highlightsActive: false,
+          highlights: [],
+          notesPanelOpen: false,
           viewingHistoryId: null,
         });
       },
@@ -318,6 +346,8 @@ export const useExamStore = create<ExamState>()(
             timerRunning: false,
             navModalOpen: false,
             isCalculatorOpen: false,
+            calculatorMode: 'none',
+            highlightsActive: false,
             breakDuration: breakMins * 60,
           });
         } else {
@@ -334,6 +364,51 @@ export const useExamStore = create<ExamState>()(
       toggleCalculator: () => set({ isCalculatorOpen: !get().isCalculatorOpen }),
       closeCalculator: () => set({ isCalculatorOpen: false }),
       setCalculatorMode: (mode) => set({ calculatorMode: mode }),
+
+      toggleHighlightsActive: () => set({ highlightsActive: !get().highlightsActive }),
+      setHighlightColor: (color) => set({ highlightColor: color }),
+      setHighlightUnderline: (underline) => set({ highlightUnderline: underline }),
+      addHighlight: (highlight) => {
+        const id = crypto.randomUUID();
+        set({
+          highlights: [
+            ...get().highlights,
+            { ...highlight, id, createdAt: Date.now(), note: '', hasNote: false },
+          ],
+        });
+        return id;
+      },
+      updateHighlightStyle: (id, updates) => {
+        set({
+          highlights: get().highlights.map((highlight) =>
+            highlight.id === id ? { ...highlight, ...updates } : highlight
+          ),
+        });
+      },
+      removeHighlight: (id) => {
+        const highlights = get().highlights.filter((highlight) => highlight.id !== id);
+        set({
+          highlights,
+          notesPanelOpen: highlights.some((highlight) => highlight.hasNote) ? get().notesPanelOpen : false,
+        });
+      },
+      addNoteToHighlight: (id) => {
+        set({
+          highlights: get().highlights.map((highlight) =>
+            highlight.id === id ? { ...highlight, hasNote: true } : highlight
+          ),
+          notesPanelOpen: true,
+        });
+      },
+      updateNoteText: (id, note) => {
+        set({
+          highlights: get().highlights.map((highlight) =>
+            highlight.id === id ? { ...highlight, note, hasNote: true } : highlight
+          ),
+        });
+      },
+      setNotesPanelOpen: (open) => set({ notesPanelOpen: open }),
+      setNotesPanelWidth: (width) => set({ notesPanelWidth: Math.min(420, Math.max(220, width)) }),
 
       tickBreak: () => {
         const state = get();
@@ -367,6 +442,9 @@ export const useExamStore = create<ExamState>()(
           navModalOpen: false,
           eliminatorMode: false,
           isCalculatorOpen: false,
+          calculatorMode: 'none',
+          highlightsActive: false,
+          notesPanelOpen: false,
           flagged: {},
           eliminated: {},
           selectedExamType: null,
@@ -396,6 +474,13 @@ export const useExamStore = create<ExamState>()(
           navModalOpen: false,
           eliminatorMode: false,
           isCalculatorOpen: false,
+          calculatorMode: 'none',
+          highlightsActive: false,
+          highlightColor: 'yellow',
+          highlightUnderline: 'none',
+          highlights: [],
+          notesPanelOpen: false,
+          notesPanelWidth: 280,
         });
       },
 
@@ -459,6 +544,11 @@ export const useExamStore = create<ExamState>()(
         timerHidden: state.timerHidden,
         breakDuration: state.breakDuration,
         viewingHistoryId: state.viewingHistoryId,
+        highlightColor: state.highlightColor,
+        highlightUnderline: state.highlightUnderline,
+        highlights: state.highlights,
+        notesPanelOpen: state.notesPanelOpen,
+        notesPanelWidth: state.notesPanelWidth,
         // NOTE: imageBlobs are ObjectURLs and die on reload — not persisted.
         // timerRunning, navModalOpen, eliminatorMode, isCalculatorOpen are transient — not persisted.
       }),
@@ -476,6 +566,8 @@ export const useExamStore = create<ExamState>()(
               navModalOpen: false,
               eliminatorMode: false,
               isCalculatorOpen: false,
+              calculatorMode: 'none',
+              highlightsActive: false,
               imageBlobs: {},
             });
           } else {

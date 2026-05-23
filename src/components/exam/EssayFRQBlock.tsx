@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useEffect } from 'react';
 import type { FRQuestion } from '../../types/ExamSchema';
 import { useExamStore } from '../../store/examStore';
 import { Bookmark } from 'lucide-react';
+import { HighlightedText } from '../highlights/HighlightedText';
 
 interface EssayFRQBlockProps {
   question: FRQuestion;
@@ -143,7 +144,7 @@ export const EssayFRQBlock: React.FC<EssayFRQBlockProps> = ({ question }) => {
 
       {/* ── Essay Prompt Text ── */}
       <div className="bb-question-text">
-        <div dangerouslySetInnerHTML={{ __html: question.text }} />
+        <HighlightedText text={question.text} questionId={question.id} areaId="question" />
       </div>
 
       {/* ── Response Instructions ── */}

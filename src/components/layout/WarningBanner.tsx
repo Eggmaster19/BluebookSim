@@ -5,7 +5,7 @@ export const WarningBanner: React.FC = () => {
   const section = useExamStore((s) => s.getCurrentSection());
   if (!section) return null;
 
-  if (!section.calculatorAllowed) {
+  if (section.calculatorType === 'none') {
     return (
       <div className="bb-banner bb-banner--red">
         <div className="bb-banner__left">

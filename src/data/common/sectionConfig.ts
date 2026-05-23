@@ -1,3 +1,5 @@
+import type { CalculatorType } from '../../types/ExamSchema';
+
 /**
  * Section Configuration Registry
  *
@@ -12,7 +14,6 @@ export interface SectionTemplate {
   title: string;
   /** Which question type belongs in this section */
   questionType: 'mcq' | 'frq';
-  calculatorAllowed: boolean;
   /** Default time allocation in minutes */
   timeMinutes: number;
   /** Suggested time per question in minutes */
@@ -31,7 +32,7 @@ export interface SectionTemplate {
   /** Reading period in minutes at the start of the section (e.g., 10 minutes for Econ FRQ) */
   readingPeriodMinutes?: number;
   /** Specifies the type of calculator to load if allowed */
-  calculatorType?: 'scientific' | 'graphing' | 'both' | '4-function' | 'none';
+  calculatorType: CalculatorType;
 }
 
 export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
@@ -40,7 +41,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-1a',
       title: 'Section I, Part A — No Calculator',
       questionType: 'mcq',
-      calculatorAllowed: false,
+      calculatorType: 'none',
       timeMinutes: 60,
       timePerQuestion: 2,
       calculatorPolicy: 'none',
@@ -51,7 +52,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-1b',
       title: 'Section I, Part B — Calculator Required',
       questionType: 'mcq',
-      calculatorAllowed: true,
       calculatorType: 'graphing',
       timeMinutes: 45,
       timePerQuestion: 3,
@@ -63,7 +63,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-2a',
       title: 'Section II, Part A — Calculator Required',
       questionType: 'frq',
-      calculatorAllowed: true,
       calculatorType: 'graphing',
       timeMinutes: 30,
       timePerQuestion: 15,
@@ -76,7 +75,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-2b',
       title: 'Section II, Part B — No Calculator',
       questionType: 'frq',
-      calculatorAllowed: false,
+      calculatorType: 'none',
       timeMinutes: 30,
       timePerQuestion: 15,
       calculatorPolicy: 'none',
@@ -90,7 +89,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-1',
       title: 'Section I — Multiple Choice',
       questionType: 'mcq',
-      calculatorAllowed: true,
       calculatorType: 'scientific',
       timeMinutes: 90,
       timePerQuestion: 1.5,
@@ -102,7 +100,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-2',
       title: 'Section II — Free Response',
       questionType: 'frq',
-      calculatorAllowed: true,
       calculatorType: 'scientific',
       timeMinutes: 90,
       timePerQuestion: 15,
@@ -117,7 +114,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-1',
       title: 'Section I — Multiple Choice',
       questionType: 'mcq',
-      calculatorAllowed: false,
+      calculatorType: 'none',
       timeMinutes: 60,
       timePerQuestion: 1.09, // approx 1 min 5 secs
       calculatorPolicy: 'none',
@@ -128,7 +125,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-2',
       title: 'Section II — Free Response',
       questionType: 'frq',
-      calculatorAllowed: false,
+      calculatorType: 'none',
       timeMinutes: 120,
       timePerQuestion: 40,
       calculatorPolicy: 'none',
@@ -142,7 +139,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-1',
       title: 'Section I — Multiple Choice',
       questionType: 'mcq',
-      calculatorAllowed: true,
       calculatorType: 'both',
       timeMinutes: 80,
       timePerQuestion: 2,
@@ -154,7 +150,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-2',
       title: 'Section II — Free Response',
       questionType: 'frq',
-      calculatorAllowed: true,
       calculatorType: 'both',
       timeMinutes: 100,
       timePerQuestion: 25,
@@ -169,7 +164,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-1',
       title: 'Section I — Multiple Choice',
       questionType: 'mcq',
-      calculatorAllowed: true,
       calculatorType: 'both',
       timeMinutes: 80,
       timePerQuestion: 2,
@@ -181,7 +175,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-2',
       title: 'Section II — Free Response',
       questionType: 'frq',
-      calculatorAllowed: true,
       calculatorType: 'both',
       timeMinutes: 100,
       timePerQuestion: 25,
@@ -196,7 +189,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-1',
       title: 'Section I — Multiple Choice',
       questionType: 'mcq',
-      calculatorAllowed: true,
       calculatorType: '4-function',
       timeMinutes: 70,
       timePerQuestion: 1.1666, // approx 1 min 10 secs
@@ -208,7 +200,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-2',
       title: 'Section II — Free Response',
       questionType: 'frq',
-      calculatorAllowed: true,
       calculatorType: '4-function',
       timeMinutes: 60,
       timePerQuestion: 20,
@@ -224,7 +215,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-1',
       title: 'Section I — Multiple Choice',
       questionType: 'mcq',
-      calculatorAllowed: true,
       calculatorType: '4-function',
       timeMinutes: 70,
       timePerQuestion: 1.1666, // approx 1 min 10 secs
@@ -236,7 +226,6 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionId: 'sec-2',
       title: 'Section II — Free Response',
       questionType: 'frq',
-      calculatorAllowed: true,
       calculatorType: '4-function',
       timeMinutes: 60,
       timePerQuestion: 20,

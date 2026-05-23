@@ -1,9 +1,9 @@
 import React from 'react';
 import type { FRQuestion } from '../../types/ExamSchema';
 import { useExamStore } from '../../store/examStore';
-import { KaTeXRenderer } from '../KaTeXRenderer';
 import { StimulusRenderer, renderStimulus } from './StimulusRenderer';
 import { Bookmark } from 'lucide-react';
+import { HighlightedText } from '../highlights/HighlightedText';
 
 interface FRQBlockProps {
   question: FRQuestion;
@@ -37,13 +37,13 @@ export const FRQBlock: React.FC<FRQBlockProps> = ({ question }) => {
             <span className="bb-frq-part__label">Part {part.partLabel}</span>
             {/* Render part-level stimulus if present */}
             {part.stimulus && (
-              <StimulusRenderer stimulus={part.stimulus} />
+              <StimulusRenderer stimulus={part.stimulus} questionId={question.id} areaId={`part-${part.partLabel}-stimulus`} />
             )}
             <div className="bb-frq-part__text">
               {part.type && part.type !== 'text' ? (
-                renderStimulus({ type: part.type, data: part.text })
+                renderStimulus({ type: part.type, data: part.text }, { questionId: question.id, areaId: `part-${part.partLabel}` })
               ) : (
-                <KaTeXRenderer text={part.text} />
+                <HighlightedText text={part.text} questionId={question.id} areaId={`part-${part.partLabel}`} />
               )}
             </div>
           </div>
@@ -52,4 +52,3 @@ export const FRQBlock: React.FC<FRQBlockProps> = ({ question }) => {
     </div>
   );
 };
-
