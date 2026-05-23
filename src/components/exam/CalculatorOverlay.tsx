@@ -95,9 +95,9 @@ export const CalculatorOverlay: React.FC = () => {
         <div
           className="calculator-header"
           style={{
-            height: '40px',
-            backgroundColor: '#f1f1f1',
-            borderBottom: '1px solid #ccc',
+            height: '44px',
+            backgroundColor: '#1a1a1a',
+            borderBottom: '1px solid #000',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -107,43 +107,74 @@ export const CalculatorOverlay: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-            <span style={{ fontWeight: 600, fontSize: '14px', color: '#333' }}>Calculator</span>
-            {calculatorType === 'both' && (
-              <div style={{ display: 'flex', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden' }}>
+            {calculatorType === 'both' ? (
+              <div style={{ display: 'flex', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden' }}>
                 <button
                   onMouseDown={(e) => e.stopPropagation()} // prevent dragging when clicking
-                  onClick={() => setCalculatorMode('scientific')}
+                  onClick={() => setCalculatorMode('graphing')}
                   style={{
-                    padding: '2px 8px',
-                    fontSize: '12px',
-                    backgroundColor: calculatorMode === 'scientific' ? '#0077c8' : '#fff',
-                    color: calculatorMode === 'scientific' ? '#fff' : '#333',
+                    padding: '4px 10px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    backgroundColor: calculatorMode === 'graphing' ? '#ffffff' : '#1a1a1a',
+                    color: calculatorMode === 'graphing' ? '#000000' : '#ffffff',
                     border: 'none',
                     cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  Scientific
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 3v18h18" />
+                    <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+                  </svg>
+                  Graphing
                 </button>
                 <button
                   onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => setCalculatorMode('graphing')}
+                  onClick={() => setCalculatorMode('scientific')}
                   style={{
-                    padding: '2px 8px',
-                    fontSize: '12px',
-                    backgroundColor: calculatorMode === 'graphing' ? '#0077c8' : '#fff',
-                    color: calculatorMode === 'graphing' ? '#fff' : '#333',
+                    padding: '4px 10px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    backgroundColor: calculatorMode === 'scientific' ? '#ffffff' : '#1a1a1a',
+                    color: calculatorMode === 'scientific' ? '#000000' : '#ffffff',
                     border: 'none',
-                    borderLeft: '1px solid #ccc',
+                    borderLeft: '1px solid #444',
                     cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  Graphing
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+                    <line x1="8" y1="6" x2="16" y2="6" />
+                    <line x1="8" y1="10" x2="8" y2="10" />
+                  </svg>
+                  Scientific
                 </button>
               </div>
+            ) : (
+              <span style={{ fontWeight: 600, fontSize: '14px', color: '#fff' }}>
+                {calculatorType === 'graphing' ? 'Graphing Calculator' : 
+                 calculatorType === 'scientific' ? 'Scientific Calculator' : 
+                 calculatorType === '4-function' ? '4-Function Calculator' : 'Calculator'}
+              </span>
             )}
           </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>
+            {/* Draggable drag handle icon */}
+            <div style={{ display: 'flex', alignItems: 'center', color: '#888', marginRight: '16px', cursor: 'grab' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
+                <circle cx="16" cy="8" r="1.5" fill="currentColor"/>
+                <circle cx="8" cy="16" r="1.5" fill="currentColor"/>
+                <circle cx="16" cy="16" r="1.5" fill="currentColor"/>
+              </svg>
+            </div>
             <button
               onMouseDown={(e) => e.stopPropagation()}
               onClick={() => setIsExpanded(!isExpanded)}
@@ -151,7 +182,7 @@ export const CalculatorOverlay: React.FC = () => {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#555',
+                color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 padding: '4px',
@@ -173,14 +204,14 @@ export const CalculatorOverlay: React.FC = () => {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#555',
+                color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 padding: '4px',
               }}
               title="Close"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
