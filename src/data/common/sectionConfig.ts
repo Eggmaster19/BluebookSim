@@ -30,6 +30,8 @@ export interface SectionTemplate {
   frqMode?: 'parts' | 'essay';
   /** Reading period in minutes at the start of the section (e.g., 10 minutes for Econ FRQ) */
   readingPeriodMinutes?: number;
+  /** Specifies the type of calculator to load if allowed */
+  calculatorType?: 'scientific' | 'graphing' | 'both' | '4-function' | 'none';
 }
 
 export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
