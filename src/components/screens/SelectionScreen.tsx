@@ -37,8 +37,8 @@ export const SelectionScreen: React.FC = () => {
           <option value="lit">lit</option>
           <option value="phys_mech">mech</option>
           <option value="phys_em">e&m</option>
-          <option value="econ_macro">macro</option>
           <option value="econ_micro">micro</option>
+          <option value="german">german</option>
           <option value="test">test</option>
         </select>
         

@@ -4,7 +4,8 @@ import { StimulusRenderer } from '../exam/StimulusRenderer';
 import { MCQBlock } from '../exam/MCQBlock';
 import { FRQBlock } from '../exam/FRQBlock';
 import { EssayFRQBlock } from '../exam/EssayFRQBlock';
-import type { FRQuestion } from '../../types/ExamSchema';
+import { AudioResponseBlock } from '../exam/AudioResponseBlock';
+import type { FRQuestion, AudioResponseQuestion } from '../../types/ExamSchema';
 import { NotesPanel } from '../highlights/NotesPanel';
 import { HighlightsLayer } from '../highlights/HighlightsLayer';
 
@@ -24,6 +25,9 @@ export const ExamScreen: React.FC = () => {
 
   // Determine which FRQ component to render
   const renderFRQ = () => {
+    if (question.questionType === 'audio-response') {
+      return <AudioResponseBlock question={question as AudioResponseQuestion} />;
+    }
     if (isEssayMode) {
       return <EssayFRQBlock question={question as FRQuestion} />;
     }

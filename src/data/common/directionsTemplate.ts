@@ -219,6 +219,35 @@ ${instructionsText}
 <p>Some questions in this section ask about specific parts of a passage or poem, while other questions ask about the passage or poem as a whole.</p>
 <p>You can go back and forth between questions in this part until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
   },
+
+  /* ── AP German Language and Culture ─────────────────────────────── */
+  german: (options) => {
+    const { sectionTitle, questionCount, timeMinutes, isFRQ } = options;
+
+    const timeDisplay = timeMinutes >= 60
+      ? `${Math.floor(timeMinutes / 60)} hour${Math.floor(timeMinutes / 60) > 1 ? 's' : ''}${timeMinutes % 60 > 0 ? ` and ${timeMinutes % 60} minutes` : ''}`
+      : `${timeMinutes} minutes`;
+
+    if (isFRQ) {
+      return `<h1>${sectionTitle} Directions</h1>
+<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day.</strong></p>
+<p style="text-align:center">AP German Language and Culture</p>
+<p>${sectionTitle} has ${questionCount} free-response tasks and lasts ${timeDisplay}.</p>
+<p>This section of the exam consists of speaking and writing tasks. You will be evaluated on your language control, range, and accuracy, and how well you communicate ideas and cultural understanding in German.</p>
+<p><strong>Speaking Tasks (Questions 1–2):</strong> You will record your spoken responses within the time allotted. You cannot replay your recordings after submission. Make sure your microphone is ready before beginning a speaking task.</p>
+<p><strong>Writing Tasks (Questions 3–4):</strong> Your responses will be saved automatically as you type. You may go back and edit your written responses at any time during this section.</p>
+<p><em>Note: On exam day, speaking responses are recorded and submitted digitally. Written responses are entered directly in the exam application.</em></p>
+<p>You can go back and forth between questions in this section until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
+    }
+
+    return `<h1>${sectionTitle} Directions</h1>
+<p><strong>The directions that follow are what you will see on exam day. This untimed preview is intended to represent the different question types and functionality you will encounter on exam day and has fewer questions than the exam.</strong></p>
+<p style="text-align:center">AP German Language and Culture</p>
+<p>${sectionTitle} has ${questionCount} multiple-choice questions and lasts ${timeDisplay}.</p>
+<p>This section includes both listening and reading questions. For <strong>listening questions</strong>, an audio recording will play automatically. You may replay the recording a limited number of times as indicated. For <strong>reading questions</strong>, a printed source will appear on screen.</p>
+<p>For each question, choose the best answer from the four choices given.</p>
+<p>You can go back and forth between questions in this part until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
+  },
 };
 
 /* ─── Public API ─────────────────────────────────────────────────── */

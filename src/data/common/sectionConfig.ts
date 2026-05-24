@@ -236,6 +236,30 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       readingPeriodMinutes: 10,
     },
   ],
+  german: [
+    {
+      sectionId: 'sec-1',
+      title: 'Section I — Free-Response',
+      questionType: 'frq',
+      calculatorType: 'none',
+      timeMinutes: 85,
+      calculatorPolicy: 'none',
+      breakAfterMinutes: 10,
+      sectionTag: '1',
+      frqMode: 'essay',
+    },
+    {
+      sectionId: 'sec-2',
+      title: 'Section II — Multiple-Choice',
+      questionType: 'mcq',
+      calculatorType: 'none',
+      timeMinutes: 80,
+      timePerQuestion: 1.45,
+      calculatorPolicy: 'none',
+      breakAfterMinutes: null,
+      sectionTag: '2',
+    },
+  ],
 };
 
 // Inject Calculus BC configuration (same as Calculus AB)

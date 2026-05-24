@@ -16,6 +16,7 @@ const EXAM_META: Record<string, { label: string; title: string; examType: string
   phys_em: { label: 'e&m', title: 'AP Physics C: E&M Practice', examType: 'AP', subject: 'Physics C: Electricity and Magnetism', studentName: 'James Maxwell' },
   econ_macro: { label: 'macro', title: 'AP Macroeconomics Practice', examType: 'AP', subject: 'Macroeconomics', studentName: 'John Keynes' },
   econ_micro: { label: 'micro', title: 'AP Microeconomics Practice', examType: 'AP', subject: 'Microeconomics', studentName: 'Adam Smith' },
+  german: { label: 'german', title: 'AP German Language and Culture Practice', examType: 'AP', subject: 'German Language and Culture', studentName: 'Johann Wolfgang von Goethe' },
   test: { label: 'test', title: 'Simulator Test', examType: 'TEST', subject: 'Testing', studentName: 'Ben Baumgartner' },
 };
 
@@ -63,6 +64,23 @@ function normalizeQuestion(raw: any, index: number): Question & { _sectionTag?: 
     if (raw.stimulus) frq.stimulus = raw.stimulus;
     if (raw.correctAnswer) frq.correctAnswer = raw.correctAnswer;
     return frq;
+  }
+
+  // Detect Audio-Response
+  if (raw.type === 'audio-response' || raw.questionType === 'audio-response') {
+    const arq: any = {
+      id,
+      questionType: 'audio-response',
+      text: raw.text ?? '',
+      prepTimeMinutes: raw.prepTimeMinutes,
+      recordingTimeMinutes: raw.recordingTimeMinutes,
+      interlocutorAudio: raw.interlocutorAudio,
+      recordingWindows: raw.recordingWindows,
+      windowDurationSeconds: raw.windowDurationSeconds,
+      _sectionTag: sectionTag,
+    };
+    if (raw.stimulus) arq.stimulus = raw.stimulus;
+    return arq;
   }
 
   // Default: MCQ
@@ -124,8 +142,9 @@ function splitIntoSections(
       throw new Error(`Question ${i + 1} has invalid section "${tag}". Use ${sectionTagList(examType)} for this exam.`);
     }
 
-    if (q.questionType !== template.questionType) {
-      throw new Error(`Question ${i + 1} is tagged "${tag}", but that section expects ${template.questionType.toUpperCase()} questions.`);
+    const isAudioResponseInFrq = q.questionType === 'audio-response' && template.questionType === 'frq';
+    if (q.questionType !== template.questionType && !isAudioResponseInFrq) {
+      throw new Error(`Question ${i + 1} is tagged "${tag}", but that section expects ${template.questionType.toUpperCase()} questions (got ${q.questionType}).`);
     }
 
     // Strip _sectionTag before storing

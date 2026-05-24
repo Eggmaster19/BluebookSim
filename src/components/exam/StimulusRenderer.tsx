@@ -6,6 +6,7 @@ import { MermaidRenderer } from '../MermaidRenderer';
 import { FunctionPlotRenderer } from '../FunctionPlotRenderer';
 import { SVGRenderer } from '../SVGRenderer';
 import { HighlightedText } from '../highlights/HighlightedText';
+import { AudioPlayer } from './AudioPlayer';
 
 interface StimulusRendererProps {
   stimulus: Stimulus;
@@ -72,6 +73,9 @@ export function renderStimulus(stimulus: Stimulus, context?: HighlightContext) {
 
     case 'table':
       return renderTable(stimulus.data);
+
+    case 'audio':
+      return <AudioPlayer src={stimulus.data as string} maxPlays={stimulus.maxPlays} />;
 
     case 'mermaid':
       return <MermaidRenderer chart={stimulus.data as string} />;

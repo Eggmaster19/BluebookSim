@@ -11,6 +11,8 @@ export interface ExamHistoryEntry {
   exam: Exam;
   answers: Record<string, string>;
   essayResponses: Record<string, string>;
+  audioRecordings?: Record<string, string>;
+  audioTranscriptions?: Record<string, string>;
   timeSpent: Record<string, number>;
 }
 

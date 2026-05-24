@@ -1,9 +1,10 @@
 // ── Stimulus Types ──────────────────────────────────────────────────
-export type StimulusType = 'text' | 'katex' | 'function-plot' | 'mermaid' | 'svg' | 'image' | 'table';
+export type StimulusType = 'text' | 'katex' | 'function-plot' | 'mermaid' | 'svg' | 'image' | 'table' | 'audio';
 
 export interface Stimulus {
   type: StimulusType;
   data: string | Record<string, unknown>;
+  maxPlays?: number; // Optional limit for audio plays
 }
 
 // ── Answer Option ───────────────────────────────────────────────────
@@ -41,7 +42,19 @@ export interface FRQuestion {
   correctAnswer?: string;
 }
 
-export type Question = MCQuestion | FRQuestion;
+export interface AudioResponseQuestion {
+  id: string;
+  questionType: 'audio-response';
+  stimulus?: Stimulus;
+  text: string;
+  prepTimeMinutes?: number;
+  recordingTimeMinutes?: number;
+  interlocutorAudio?: string[]; // Array of audio paths/data for Q&A (e.g. 4 interlocutor clips)
+  recordingWindows?: number; // Number of recordings to make (e.g. 4 for Q&A)
+  windowDurationSeconds?: number; // Duration of each recording window (e.g. 40s)
+}
+
+export type Question = MCQuestion | FRQuestion | AudioResponseQuestion;
 
 export type CalculatorType = 'none' | 'scientific' | 'graphing' | 'both' | '4-function';
 export type HighlightColor = 'yellow' | 'blue' | 'pink';

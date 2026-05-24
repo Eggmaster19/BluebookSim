@@ -41,9 +41,10 @@ export const DoneScreen: React.FC = () => {
   );
 
   const mcqs = allQuestions.filter((q) => q.questionType === 'mcq');
-  const frqs = allQuestions.filter((q) => q.questionType === 'frq');
+  const frqs = allQuestions.filter((q) => q.questionType === 'frq' || q.questionType === 'audio-response');
   const essayFRQs = frqs.filter((q) => q.frqMode === 'essay');
-  const paperFRQs = frqs.filter((q) => q.frqMode !== 'essay');
+  const paperFRQs = frqs.filter((q) => q.frqMode !== 'essay' && q.questionType !== 'audio-response');
+  const audioFRQs = frqs.filter((q) => q.questionType === 'audio-response');
   const hasAnswerKey = mcqs.some((q) => !!q.correctAnswer);
 
   // 2. Performance Metrics
@@ -56,6 +57,9 @@ export const DoneScreen: React.FC = () => {
     if (q.questionType === 'frq' && q.frqMode === 'essay' && essayResponses[q.id]) {
       const text = essayResponses[q.id].replace(/<[^>]*>/g, '').trim();
       return text.length > 0;
+    }
+    if (q.questionType === 'audio-response' && useExamStore.getState().audioRecordings[q.id]) {
+      return true;
     }
     return false;
   }).length;
@@ -142,6 +146,16 @@ export const DoneScreen: React.FC = () => {
       text += `--- ${q.displayLabel} (${wordCount} words) ---\n`;
       text += `Prompt: ${q.text}\n\n`;
       text += `Response:\n${essayText || '[No Response]'}\n\n`;
+    });
+
+    audioFRQs.forEach((q) => {
+      const transcript = useExamStore.getState().audioTranscriptions[q.id] || '';
+      const hasAudio = !!useExamStore.getState().audioRecordings[q.id];
+      const wordCount = transcript.split(/\s+/).filter(w => w).length;
+      
+      text += `--- ${q.displayLabel} (${wordCount} words) [Audio: ${hasAudio ? 'YES' : 'NO'}] ---\n`;
+      text += `Prompt: ${q.text}\n\n`;
+      text += `Transcript:\n${transcript || '[No Transcript]'}\n\n`;
     });
 
     return text;
@@ -297,7 +311,7 @@ export const DoneScreen: React.FC = () => {
                   } else {
                     const answered = !!answers[q.id];
                     if (hasAnswerKey) {
-                      const correct = answers[q.id] === q.correctAnswer;
+                      const correct = answers[q.id] === (q as any).correctAnswer;
                       barClass = correct ? 'bb-graph-bar--correct' : 'bb-graph-bar--incorrect';
                       statusLabel = correct ? 'Correct' : answered ? 'Incorrect' : 'Skipped / Incorrect';
                     } else {
@@ -369,12 +383,12 @@ export const DoneScreen: React.FC = () => {
         )}
 
         {/* Section: FRQ Export */}
-        {essayFRQs.length > 0 && (
+        {(essayFRQs.length > 0 || audioFRQs.length > 0) && (
           <div className="bb-dashboard-section">
             <div className="bb-section-header">
               <h2 className="bb-section-title">FRQ Export</h2>
               <p className="bb-section-desc">
-                Copy your essay responses.
+                Copy your essay and audio responses.
               </p>
             </div>
 
@@ -384,6 +398,26 @@ export const DoneScreen: React.FC = () => {
                 {copiedFRQ ? '✓ Copied to Clipboard!' : '📋 Copy FRQ Responses'}
               </button>
             </div>
+            
+            {audioFRQs.length > 0 && (
+              <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {audioFRQs.map(q => {
+                  const audioUrl = useExamStore.getState().audioRecordings[q.id];
+                  if (!audioUrl) return null;
+                  return (
+                    <a 
+                      key={q.id}
+                      href={audioUrl}
+                      download={`AP_German_${q.displayLabel.replace(/\s+/g, '_')}.mp3`}
+                      className="bb-done-btn bb-done-btn--primary"
+                      style={{ fontSize: '12px', padding: '6px 12px' }}
+                    >
+                      🎵 Download {q.displayLabel} MP3
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

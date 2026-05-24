@@ -16,6 +16,8 @@ function saveCurrentToHistory(state: ExamState) {
     exam: state.exam,
     answers: { ...state.answers },
     essayResponses: { ...state.essayResponses },
+    audioRecordings: { ...state.audioRecordings },
+    audioTranscriptions: { ...state.audioTranscriptions },
     timeSpent: { ...state.timeSpent },
   };
   useHistoryStore.getState().saveToHistory(entry);
@@ -41,6 +43,8 @@ interface ExamState {
   eliminated: Record<string, string[]>;     // questionId -> [optionId, ...]
   timeSpent: Record<string, number>;        // questionId -> seconds spent
   essayResponses: Record<string, string>;   // questionId -> HTML essay content
+  audioRecordings: Record<string, string>;  // questionId -> mp3 Blob URL
+  audioTranscriptions: Record<string, string>; // questionId -> transcription text
 
   // ── Timer ──
   timerSeconds: number;
@@ -90,6 +94,8 @@ interface ExamState {
   // Answer Management
   selectAnswer: (questionId: string, optionId: string) => void;
   setEssayResponse: (questionId: string, html: string) => void;
+  setAudioRecording: (questionId: string, blobUrl: string) => void;
+  setAudioTranscription: (questionId: string, text: string) => void;
   toggleFlag: (questionId: string) => void;
   toggleEliminate: (questionId: string, optionId: string) => void;
 
@@ -154,6 +160,8 @@ export const useExamStore = create<ExamState>()(
       eliminated: {},
       timeSpent: {},
       essayResponses: {},
+      audioRecordings: {},
+      audioTranscriptions: {},
       timerSeconds: 0,
       timerRunning: false,
       timerHidden: false,
@@ -201,6 +209,8 @@ export const useExamStore = create<ExamState>()(
           eliminated: {},
           timeSpent: {},
           essayResponses: {},
+          audioRecordings: {},
+          audioTranscriptions: {},
           timerSeconds: firstSection ? firstSection.timeMinutes * 60 : 0,
           timerRunning: false,
           timerHidden: false,
@@ -275,6 +285,16 @@ export const useExamStore = create<ExamState>()(
       setEssayResponse: (questionId, html) => {
         const state = get();
         set({ essayResponses: { ...state.essayResponses, [questionId]: html } });
+      },
+
+      setAudioRecording: (questionId, blobUrl) => {
+        const state = get();
+        set({ audioRecordings: { ...state.audioRecordings, [questionId]: blobUrl } });
+      },
+
+      setAudioTranscription: (questionId, text) => {
+        const state = get();
+        set({ audioTranscriptions: { ...state.audioTranscriptions, [questionId]: text } });
       },
 
       toggleFlag: (questionId) => {
@@ -429,6 +449,8 @@ export const useExamStore = create<ExamState>()(
           studentName: entry.studentName,
           answers: entry.answers,
           essayResponses: entry.essayResponses,
+          audioRecordings: entry.audioRecordings || {},
+          audioTranscriptions: entry.audioTranscriptions || {},
           timeSpent: entry.timeSpent,
           phase: 'done',
           viewingHistoryId: id,
@@ -467,6 +489,8 @@ export const useExamStore = create<ExamState>()(
           eliminated: {},
           timeSpent: {},
           essayResponses: {},
+          audioRecordings: {},
+          audioTranscriptions: {},
           timerSeconds: 0,
           timerRunning: false,
           timerHidden: false,
@@ -513,6 +537,10 @@ export const useExamStore = create<ExamState>()(
             const text = state.essayResponses[q.id].replace(/<[^>]*>/g, '').trim();
             return text.length > 0;
           }
+          // Count audio-response questions as answered if a recording exists
+          if (q.questionType === 'audio-response') {
+            return !!state.audioRecordings[q.id];
+          }
           return false;
         }).length;
       },
@@ -540,6 +568,8 @@ export const useExamStore = create<ExamState>()(
         eliminated: state.eliminated,
         timeSpent: state.timeSpent,
         essayResponses: state.essayResponses,
+        audioRecordings: state.audioRecordings,
+        audioTranscriptions: state.audioTranscriptions,
         timerSeconds: state.timerSeconds,
         timerHidden: state.timerHidden,
         breakDuration: state.breakDuration,
