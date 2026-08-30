@@ -10,7 +10,9 @@ interface NotesPanelProps {
 
 export const NotesPanel: React.FC<NotesPanelProps> = ({ questionId, splitPane }) => {
   const highlights = useExamStore((s) =>
-    s.highlights.filter((highlight) => highlight.questionId === questionId && highlight.hasNote)
+    (Array.isArray(s.highlights) ? s.highlights : []).filter(
+      (highlight) => highlight && highlight.questionId === questionId && highlight.hasNote
+    )
   );
   const notesPanelWidth = useExamStore((s) => s.notesPanelWidth);
   const setNotesPanelWidth = useExamStore((s) => s.setNotesPanelWidth);

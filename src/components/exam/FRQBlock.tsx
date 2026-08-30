@@ -32,7 +32,7 @@ export const FRQBlock: React.FC<FRQBlockProps> = ({ question }) => {
 
       {/* ── FRQ Parts ── */}
       <div className="bb-frq-parts">
-        {question.parts.map((part) => (
+        {(question.parts || []).map((part) => (
           <div key={part.partLabel} className="bb-frq-part">
             <span className="bb-frq-part__label">Part {part.partLabel}</span>
             {/* Render part-level stimulus if present */}

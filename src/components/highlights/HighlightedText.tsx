@@ -25,11 +25,13 @@ export const HighlightedText: React.FC<HighlightedTextProps> = ({
   displayMath = false,
 }) => {
   const highlights = useExamStore((s) =>
-    s.highlights.filter((highlight) => highlight.questionId === questionId && highlight.areaId === areaId)
+    (Array.isArray(s.highlights) ? s.highlights : []).filter(
+      (highlight) => highlight && highlight.questionId === questionId && highlight.areaId === areaId
+    )
   );
 
   const content = useMemo(
-    () => renderMixedText(text, highlights, displayMath),
+    () => renderMixedText(text ?? '', highlights, displayMath),
     [text, highlights, displayMath]
   );
 
@@ -46,6 +48,7 @@ export const HighlightedText: React.FC<HighlightedTextProps> = ({
 };
 
 function renderMixedText(text: string, highlights: HighlightNote[], displayMath: boolean): React.ReactNode[] {
+  if (!text || typeof text !== 'string') return [];
   const parts = text.split(/(\$\$[^$]+\$\$)/g);
 
   return parts.map((part, index) => {
@@ -71,7 +74,7 @@ function renderMixedText(text: string, highlights: HighlightNote[], displayMath:
 }
 
 function renderHtmlFragment(html: string, highlights: HighlightNote[], keyPrefix: string): React.ReactNode {
-  if (!html) return null;
+  if (!html || typeof html !== 'string') return null;
 
   const template = document.createElement('template');
   template.innerHTML = html;
@@ -108,11 +111,12 @@ function renderNode(node: Node, highlights: HighlightNote[], key: string): React
 }
 
 function renderHighlightedPlainText(text: string, highlights: HighlightNote[], keyPrefix: string): React.ReactNode[] {
-  if (!text || highlights.length === 0) return [text];
+  if (!text || typeof text !== 'string' || !Array.isArray(highlights) || highlights.length === 0) return [text ?? ''];
 
   const matches: Array<{ start: number; end: number; highlight: HighlightNote }> = [];
 
   for (const highlight of highlights) {
+    if (!highlight || !highlight.text) continue;
     const needle = highlight.text.trim();
     if (!needle) continue;
 

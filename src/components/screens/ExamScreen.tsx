@@ -14,10 +14,12 @@ export const ExamScreen: React.FC = () => {
   const section = useExamStore((s) => s.getCurrentSection());
   const notesPanelOpen = useExamStore((s) => s.notesPanelOpen);
   const hasQuestionNotes = useExamStore((s) =>
-    question ? s.highlights.some((highlight) => highlight.questionId === question.id && highlight.hasNote) : false
+    question && Array.isArray(s.highlights)
+      ? s.highlights.some((highlight) => highlight && highlight.questionId === question.id && highlight.hasNote)
+      : false
   );
 
-  if (!question) return <div>No question found.</div>;
+  if (!question) return <div style={{ padding: '32px', textAlign: 'center' }}>No question found.</div>;
 
   const hasStimulus = !!question.stimulus;
   const isFRQ = question.questionType === 'frq';

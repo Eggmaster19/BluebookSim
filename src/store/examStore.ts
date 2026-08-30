@@ -149,6 +149,7 @@ interface ExamState {
   // Save and Resume
   saveExamAsIncompleteAndExit: () => void;
   resumeIncompleteExam: (entry: ExamHistoryEntry) => void;
+  resetExamStore: () => void;
 
   // Helpers
   getCurrentSection: () => Exam['sections'][0] | null;
@@ -555,38 +556,77 @@ export const useExamStore = create<ExamState>()(
         });
       },
 
+      resetExamStore: () => {
+        set({
+          exam: null,
+          studentName: '',
+          selectedExamType: null,
+          imageBlobs: {},
+          currentSectionIndex: 0,
+          currentQuestionIndex: 0,
+          phase: 'preview',
+          answers: {},
+          flagged: {},
+          eliminated: {},
+          timeSpent: {},
+          essayResponses: {},
+          audioRecordings: {},
+          audioTranscriptions: {},
+          timerSeconds: 0,
+          timerRunning: false,
+          timerHidden: false,
+          breakDuration: 0,
+          navModalOpen: false,
+          eliminatorMode: true,
+          isCalculatorOpen: false,
+          calculatorMode: 'none',
+          highlightsActive: false,
+          highlightColor: 'yellow',
+          highlightUnderline: 'none',
+          highlights: [],
+          notesPanelOpen: false,
+          notesPanelWidth: 280,
+          viewingHistoryId: null,
+        });
+      },
+
       getCurrentSection: () => {
         const state = get();
-        if (!state.exam) return null;
-        return state.exam.sections[state.currentSectionIndex] || null;
+        if (!state.exam || !Array.isArray(state.exam.sections) || state.exam.sections.length === 0) return null;
+        const index = Math.max(0, Math.min(state.currentSectionIndex, state.exam.sections.length - 1));
+        return state.exam.sections[index] || null;
       },
 
       getCurrentQuestion: () => {
         const state = get();
         const section = state.getCurrentSection();
-        if (!section) return null;
-        return section.questions[state.currentQuestionIndex] || null;
+        if (!section || !Array.isArray(section.questions) || section.questions.length === 0) return null;
+        const index = Math.max(0, Math.min(state.currentQuestionIndex, section.questions.length - 1));
+        return section.questions[index] || null;
       },
 
       getSectionQuestionCount: () => {
         const section = get().getCurrentSection();
-        return section ? section.questions.length : 0;
+        return section?.questions?.length ?? 0;
       },
 
       getAnsweredCount: () => {
         const state = get();
         const section = state.getCurrentSection();
-        if (!section) return 0;
+        if (!section || !Array.isArray(section.questions)) return 0;
+        const answers = state.answers || {};
+        const essayResponses = state.essayResponses || {};
+        const audioRecordings = state.audioRecordings || {};
         return section.questions.filter((q) => {
-          if (state.answers[q.id]) return true;
+          if (answers[q.id]) return true;
           // Count essay FRQs with non-empty content as answered
-          if (q.questionType === 'frq' && state.essayResponses[q.id]) {
-            const text = state.essayResponses[q.id].replace(/<[^>]*>/g, '').trim();
+          if (q.questionType === 'frq' && essayResponses[q.id]) {
+            const text = essayResponses[q.id].replace(/<[^>]*>/g, '').trim();
             return text.length > 0;
           }
           // Count audio-response questions as answered if a recording exists
           if (q.questionType === 'audio-response') {
-            return !!state.audioRecordings[q.id];
+            return !!audioRecordings[q.id];
           }
           return false;
         }).length;
@@ -595,8 +635,9 @@ export const useExamStore = create<ExamState>()(
       getFlaggedCount: () => {
         const state = get();
         const section = state.getCurrentSection();
-        if (!section) return 0;
-        return section.questions.filter((q) => state.flagged[q.id]).length;
+        if (!section || !Array.isArray(section.questions)) return 0;
+        const flagged = state.flagged || {};
+        return section.questions.filter((q) => flagged[q.id]).length;
       },
     }),
     {
@@ -610,24 +651,22 @@ export const useExamStore = create<ExamState>()(
         currentSectionIndex: state.currentSectionIndex,
         currentQuestionIndex: state.currentQuestionIndex,
         phase: state.phase,
-        answers: state.answers,
-        flagged: state.flagged,
-        eliminated: state.eliminated,
-        timeSpent: state.timeSpent,
-        essayResponses: state.essayResponses,
-        audioRecordings: state.audioRecordings,
-        audioTranscriptions: state.audioTranscriptions,
+        answers: state.answers || {},
+        flagged: state.flagged || {},
+        eliminated: state.eliminated || {},
+        timeSpent: state.timeSpent || {},
+        essayResponses: state.essayResponses || {},
+        audioRecordings: state.audioRecordings || {},
+        audioTranscriptions: state.audioTranscriptions || {},
         timerSeconds: state.timerSeconds,
         timerHidden: state.timerHidden,
         breakDuration: state.breakDuration,
         viewingHistoryId: state.viewingHistoryId,
         highlightColor: state.highlightColor,
         highlightUnderline: state.highlightUnderline,
-        highlights: state.highlights,
+        highlights: Array.isArray(state.highlights) ? state.highlights : [],
         notesPanelOpen: state.notesPanelOpen,
         notesPanelWidth: state.notesPanelWidth,
-        // NOTE: imageBlobs are ObjectURLs and die on reload — not persisted.
-        // timerRunning, navModalOpen, eliminatorMode, isCalculatorOpen are transient — not persisted.
       }),
       onRehydrateStorage: () => {
         return (state, error) => {
@@ -635,8 +674,6 @@ export const useExamStore = create<ExamState>()(
             console.error('Exam store rehydration failed:', error);
           }
           if (state) {
-            // Mark hydration complete so UI can wait for it
-            // Ensure transient state is reset after rehydration
             useExamStore.setState({
               _hasHydrated: true,
               timerRunning: false,
@@ -646,9 +683,16 @@ export const useExamStore = create<ExamState>()(
               calculatorMode: 'none',
               highlightsActive: false,
               imageBlobs: {},
+              highlights: Array.isArray(state.highlights) ? state.highlights : [],
+              answers: state.answers || {},
+              flagged: state.flagged || {},
+              eliminated: state.eliminated || {},
+              essayResponses: state.essayResponses || {},
+              timeSpent: state.timeSpent || {},
+              audioRecordings: state.audioRecordings || {},
+              audioTranscriptions: state.audioTranscriptions || {},
             });
           } else {
-            // Rehydration failed — still unblock the UI
             useExamStore.setState({ _hasHydrated: true });
           }
         };
@@ -656,3 +700,13 @@ export const useExamStore = create<ExamState>()(
     }
   )
 );
+
+// Global browser console helper for instant reset
+if (typeof window !== 'undefined') {
+  const win = window as typeof window & { resetBluebookState?: () => void };
+  win.resetBluebookState = () => {
+    Promise.resolve(idbStorage.removeItem('bluebook-exam-state')).catch(console.error);
+    useExamStore.getState().resetExamStore();
+    window.location.reload();
+  };
+}

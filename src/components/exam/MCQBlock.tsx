@@ -10,14 +10,18 @@ interface MCQBlockProps {
 }
 
 export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
-  const { 
-    answers, flagged, eliminated, eliminatorMode, 
-    selectAnswer, toggleFlag, toggleEliminate, toggleEliminatorMode 
-  } = useExamStore();
+  const answers = useExamStore((s) => s.answers || {});
+  const flagged = useExamStore((s) => s.flagged || {});
+  const eliminated = useExamStore((s) => s.eliminated || {});
+  const eliminatorMode = useExamStore((s) => s.eliminatorMode);
+  const selectAnswer = useExamStore((s) => s.selectAnswer);
+  const toggleFlag = useExamStore((s) => s.toggleFlag);
+  const toggleEliminate = useExamStore((s) => s.toggleEliminate);
+  const toggleEliminatorMode = useExamStore((s) => s.toggleEliminatorMode);
 
-  const selectedAnswer = answers[question.id];
-  const isFlagged = flagged[question.id];
-  const eliminatedOptions = eliminated[question.id] || [];
+  const selectedAnswer = question?.id ? answers[question.id] : undefined;
+  const isFlagged = question?.id ? flagged[question.id] : false;
+  const eliminatedOptions = (question?.id && eliminated[question.id]) || [];
   const questionIndex = useExamStore((s) => s.currentQuestionIndex);
 
   return (
@@ -45,7 +49,7 @@ export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
 
       {/* ── Question Text ── */}
       <div className="bb-question-text">
-        <HighlightedText text={question.text} questionId={question.id} areaId="question" />
+        <HighlightedText text={question.text ?? ''} questionId={question.id} areaId="question" />
       </div>
 
       {/* ── Options Stimulus (for grouped option images) ── */}
@@ -57,7 +61,7 @@ export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
 
       {/* ── Options ── */}
       <div className="bb-options">
-        {question.options.map((option) => {
+        {(question.options || []).map((option) => {
           const isSelected = selectedAnswer === option.id;
           const isEliminated = eliminatedOptions.includes(option.id);
 

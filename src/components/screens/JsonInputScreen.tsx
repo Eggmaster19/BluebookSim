@@ -562,7 +562,7 @@ export const JsonInputScreen: React.FC = () => {
     } catch (err) {
       console.error('Failed to read clipboard contents: ', err);
       // Fallback message if clipboard permissions are denied or unsupported
-      alert('Failed to read clipboard. Please ensure clipboard permissions are granted or simply press Ctrl+V / Cmd+V inside the box.');
+      alert('Failed to read clipboard. Please ensure clipboard permissions are granted.');
     }
   };
 

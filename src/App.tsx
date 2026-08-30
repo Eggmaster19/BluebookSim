@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useExamStore } from './store/examStore';
 import { SelectionScreen } from './components/screens/SelectionScreen';
 import { JsonInputScreen } from './components/screens/JsonInputScreen';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Layout
 import { Header } from './components/layout/Header';
@@ -47,9 +48,28 @@ const App: React.FC = () => {
     if (hasHydrated && phase === 'exam' && !timerRunning && exam) {
       startTimer();
     }
-    // Only run once on hydration
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasHydrated]);
+  }, [hasHydrated, phase, timerRunning, exam, startTimer]);
+  // Emergency keyboard reset shortcut: Ctrl+Alt+R or Cmd+Option+R
+  useEffect(() => {
+    const handleEmergencyKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        if (window.confirm('Emergency Reset: Do you want to clear the saved session and return to the home screen?')) {
+          if (typeof (window as unknown as { resetBluebookState?: () => void }).resetBluebookState === 'function') {
+            (window as unknown as { resetBluebookState: () => void }).resetBluebookState();
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleEmergencyKey);
+    return () => window.removeEventListener('keydown', handleEmergencyKey);
+  }, []);
+
+  // Handle resume from directions
+  const handleResume = () => {
+    setPhase('exam');
+    startTimer();
+  };
 
   // Wait for IndexedDB hydration before rendering anything
   if (!hasHydrated) {
@@ -62,56 +82,42 @@ const App: React.FC = () => {
     );
   }
 
-  // ── Pre-exam screens ──
-  if (!exam) {
-    if (selectedExamType) {
-      return <JsonInputScreen />;
-    }
-    return <SelectionScreen />;
-  }
-
-  // ── Preview Screen: full takeover (dark mode, no header/footer) ──
-  if (phase === 'preview') {
-    return <PreviewScreen />;
-  }
-
-  // ── Break Screen: full takeover (dark mode, no header/footer) ──
-  if (phase === 'break') {
-    return <BreakScreen />;
-  }
-
-  // ── Unscheduled Break Screen: full takeover ──
-  if (phase === 'unscheduled-break') {
-    return <UnscheduledBreakScreen />;
-  }
-
-  // ── Done Screen ──
-  if (phase === 'done') {
-    return <DoneScreen />;
-  }
-
-  // Handle resume from directions
-  const handleResume = () => {
-    setPhase('exam');
-    startTimer();
-  };
-
   return (
-    <div className="bluebook-shell">
-      {/* ── Header (always visible in directions, exam, check) ── */}
-      <Header />
-      <WarningBanner />
+    <ErrorBoundary>
+      {/* ── Pre-exam screens ── */}
+      {!exam && (selectedExamType ? <JsonInputScreen /> : <SelectionScreen />)}
 
-      {/* ── Main Content ── */}
-      {phase === 'directions' && <DirectionsScreen />}
-      {phase === 'exam' && <ExamScreen />}
-      {phase === 'check' && <CheckYourWorkScreen />}
+      {/* ── Preview Screen: full takeover (dark mode, no header/footer) ── */}
+      {exam && phase === 'preview' && <PreviewScreen />}
 
-      <CalculatorOverlay />
+      {/* ── Break Screen: full takeover (dark mode, no header/footer) ── */}
+      {exam && phase === 'break' && <BreakScreen />}
 
-      {/* ── Footer ── */}
-      <Footer onResume={handleResume} />
-    </div>
+      {/* ── Unscheduled Break Screen: full takeover ── */}
+      {exam && phase === 'unscheduled-break' && <UnscheduledBreakScreen />}
+
+      {/* ── Done Screen ── */}
+      {exam && phase === 'done' && <DoneScreen />}
+
+      {/* ── Exam Shell (directions, exam, check) ── */}
+      {exam && (phase === 'directions' || phase === 'exam' || phase === 'check') && (
+        <div className="bluebook-shell">
+          {/* ── Header (always visible in directions, exam, check) ── */}
+          <Header />
+          <WarningBanner />
+
+          {/* ── Main Content ── */}
+          {phase === 'directions' && <DirectionsScreen />}
+          {phase === 'exam' && <ExamScreen />}
+          {phase === 'check' && <CheckYourWorkScreen />}
+
+          <CalculatorOverlay />
+
+          {/* ── Footer ── */}
+          <Footer onResume={handleResume} />
+        </div>
+      )}
+    </ErrorBoundary>
   );
 };
 
