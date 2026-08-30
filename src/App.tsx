@@ -43,12 +43,15 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [timerRunning, tickTimer]);
 
-  // Auto-resume timer after rehydration if we were mid-exam
+  // Auto-resume timer once on rehydration if we were mid-exam
   useEffect(() => {
-    if (hasHydrated && phase === 'exam' && !timerRunning && exam) {
-      startTimer();
+    if (hasHydrated) {
+      const state = useExamStore.getState();
+      if (state.phase === 'exam' && !state.timerRunning && state.exam) {
+        state.startTimer();
+      }
     }
-  }, [hasHydrated, phase, timerRunning, exam, startTimer]);
+  }, [hasHydrated]);
   // Emergency keyboard reset shortcut: Ctrl+Alt+R or Cmd+Option+R
   useEffect(() => {
     const handleEmergencyKey = (e: KeyboardEvent) => {

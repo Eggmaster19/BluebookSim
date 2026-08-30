@@ -24,15 +24,18 @@ export const HighlightedText: React.FC<HighlightedTextProps> = ({
   className,
   displayMath = false,
 }) => {
-  const highlights = useExamStore((s) =>
-    (Array.isArray(s.highlights) ? s.highlights : []).filter(
+  const highlights = useExamStore((s) => s.highlights);
+
+  const matchingHighlights = useMemo(() => {
+    if (!Array.isArray(highlights)) return [];
+    return highlights.filter(
       (highlight) => highlight && highlight.questionId === questionId && highlight.areaId === areaId
-    )
-  );
+    );
+  }, [highlights, questionId, areaId]);
 
   const content = useMemo(
-    () => renderMixedText(text ?? '', highlights, displayMath),
-    [text, highlights, displayMath]
+    () => renderMixedText(text ?? '', matchingHighlights, displayMath),
+    [text, matchingHighlights, displayMath]
   );
 
   return (

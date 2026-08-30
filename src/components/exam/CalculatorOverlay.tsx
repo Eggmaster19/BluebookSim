@@ -24,9 +24,8 @@ export const CalculatorOverlay: React.FC = () => {
   const closeCalculator = useExamStore((s) => s.closeCalculator);
   const calculatorMode = useExamStore((s) => s.calculatorMode);
   const setCalculatorMode = useExamStore((s) => s.setCalculatorMode);
-  const getCurrentSection = useExamStore((s) => s.getCurrentSection);
+  const section = useExamStore((s) => s.getCurrentSection());
 
-  const section = getCurrentSection();
   const calculatorType = section?.calculatorType ?? 'none';
   const calculatorAvailable = calculatorType !== 'none';
 
@@ -42,16 +41,10 @@ export const CalculatorOverlay: React.FC = () => {
   useEffect(() => {
     if (!isCalculatorOpen || !calculatorAvailable || !calcContainerRef.current) return;
 
-    // Default to the section's base type, or the user's toggle if 'both'
-    let modeToLoad = calculatorType;
-    if (calculatorType === 'both') {
-      modeToLoad = calculatorMode === 'graphing' || calculatorMode === 'scientific'
-        ? calculatorMode
-        : 'scientific';
-      if (calculatorMode !== modeToLoad) {
-        setCalculatorMode('scientific');
-      }
-    }
+    // Determine mode to load without calling setCalculatorMode inside effect
+    const modeToLoad = calculatorType === 'both'
+      ? (calculatorMode === 'graphing' ? 'graphing' : 'scientific')
+      : calculatorType;
 
     const Desmos = window.Desmos;
     if (!Desmos) {

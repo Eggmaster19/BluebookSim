@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useExamStore } from '../../store/examStore';
 import type { HighlightNote } from '../../types/ExamSchema';
@@ -9,15 +9,18 @@ interface NotesPanelProps {
 }
 
 export const NotesPanel: React.FC<NotesPanelProps> = ({ questionId, splitPane }) => {
-  const highlights = useExamStore((s) =>
-    (Array.isArray(s.highlights) ? s.highlights : []).filter(
-      (highlight) => highlight && highlight.questionId === questionId && highlight.hasNote
-    )
-  );
+  const highlights = useExamStore((s) => s.highlights);
   const notesPanelWidth = useExamStore((s) => s.notesPanelWidth);
   const setNotesPanelWidth = useExamStore((s) => s.setNotesPanelWidth);
 
-  if (highlights.length === 0) return null;
+  const matchingHighlights = useMemo(() => {
+    if (!Array.isArray(highlights)) return [];
+    return highlights.filter(
+      (highlight) => highlight && highlight.questionId === questionId && highlight.hasNote
+    );
+  }, [highlights, questionId]);
+
+  if (matchingHighlights.length === 0) return null;
 
   const startResize = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -43,7 +46,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ questionId, splitPane })
       style={{ width: splitPane ? notesPanelWidth : 280 }}
     >
       <div className="bb-notes-panel__list">
-        {highlights.map((highlight) => (
+        {matchingHighlights.map((highlight) => (
           <NoteCard key={highlight.id} highlight={highlight} />
         ))}
       </div>

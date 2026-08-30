@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useExamStore } from '../../store/examStore';
 import { StimulusRenderer } from '../exam/StimulusRenderer';
 import { MCQBlock } from '../exam/MCQBlock';
@@ -13,11 +13,14 @@ export const ExamScreen: React.FC = () => {
   const question = useExamStore((s) => s.getCurrentQuestion());
   const section = useExamStore((s) => s.getCurrentSection());
   const notesPanelOpen = useExamStore((s) => s.notesPanelOpen);
-  const hasQuestionNotes = useExamStore((s) =>
-    question && Array.isArray(s.highlights)
-      ? s.highlights.some((highlight) => highlight && highlight.questionId === question.id && highlight.hasNote)
-      : false
-  );
+  const highlights = useExamStore((s) => s.highlights);
+
+  const hasQuestionNotes = useMemo(() => {
+    if (!question || !Array.isArray(highlights)) return false;
+    return highlights.some(
+      (highlight) => highlight && highlight.questionId === question.id && highlight.hasNote
+    );
+  }, [question, highlights]);
 
   if (!question) return <div style={{ padding: '32px', textAlign: 'center' }}>No question found.</div>;
 

@@ -10,9 +10,9 @@ interface MCQBlockProps {
 }
 
 export const MCQBlock: React.FC<MCQBlockProps> = ({ question }) => {
-  const answers = useExamStore((s) => s.answers || {});
-  const flagged = useExamStore((s) => s.flagged || {});
-  const eliminated = useExamStore((s) => s.eliminated || {});
+  const answers = useExamStore((s) => s.answers);
+  const flagged = useExamStore((s) => s.flagged);
+  const eliminated = useExamStore((s) => s.eliminated);
   const eliminatorMode = useExamStore((s) => s.eliminatorMode);
   const selectAnswer = useExamStore((s) => s.selectAnswer);
   const toggleFlag = useExamStore((s) => s.toggleFlag);
