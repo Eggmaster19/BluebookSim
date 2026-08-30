@@ -128,6 +128,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({ question }) => {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdown, phase]);
 
   const formatTime = (secs: number) => {

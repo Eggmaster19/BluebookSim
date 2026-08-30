@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { idbStorage } from './idbStorage';
-import { useHistoryStore } from './historyStore';
+import { useHistoryStore, type ExamHistoryEntry } from './historyStore';
 import type { Exam, HighlightColor, HighlightNote, HighlightUnderline, Question } from '../types/ExamSchema';
 
-export type ExamPhase = 'preview' | 'directions' | 'exam' | 'check' | 'break' | 'done';
+export type ExamPhase = 'preview' | 'directions' | 'exam' | 'check' | 'break' | 'unscheduled-break' | 'done';
 
 /** Helper: push current exam state into the history store */
-function saveCurrentToHistory(state: ExamState) {
+function saveCurrentToHistory(state: ExamState, status: 'completed' | 'incomplete' = 'completed') {
   if (!state.exam) return;
   const entry = {
     id: crypto.randomUUID(),
@@ -19,6 +19,15 @@ function saveCurrentToHistory(state: ExamState) {
     audioRecordings: { ...state.audioRecordings },
     audioTranscriptions: { ...state.audioTranscriptions },
     timeSpent: { ...state.timeSpent },
+    status,
+    resumeState: {
+      currentSectionIndex: state.currentSectionIndex,
+      currentQuestionIndex: state.currentQuestionIndex,
+      phase: state.phase,
+      timerSeconds: state.timerSeconds,
+      flagged: state.flagged,
+      eliminated: state.eliminated,
+    },
   };
   useHistoryStore.getState().saveToHistory(entry);
 }
@@ -137,6 +146,10 @@ interface ExamState {
   loadHistoryEntry: (id: string) => void;
   exitHistoryView: () => void;
 
+  // Save and Resume
+  saveExamAsIncompleteAndExit: () => void;
+  resumeIncompleteExam: (entry: ExamHistoryEntry) => void;
+
   // Helpers
   getCurrentSection: () => Exam['sections'][0] | null;
   getCurrentQuestion: () => Question | null;
@@ -167,7 +180,7 @@ export const useExamStore = create<ExamState>()(
       timerHidden: false,
       breakDuration: 0,
       navModalOpen: false,
-      eliminatorMode: false,
+      eliminatorMode: true,
       isCalculatorOpen: false,
       calculatorMode: 'none',
       highlightsActive: false,
@@ -222,6 +235,8 @@ export const useExamStore = create<ExamState>()(
           highlights: [],
           notesPanelOpen: false,
           viewingHistoryId: null,
+          eliminatorMode: true,
+          highlightColor: get().highlightColor || 'yellow',
         });
       },
 
@@ -279,6 +294,7 @@ export const useExamStore = create<ExamState>()(
       selectAnswer: (questionId, optionId) => {
         const state = get();
         // Do not deselect if clicking the already selected option
+        if (state.answers[questionId] === optionId) return;
         set({ answers: { ...state.answers, [questionId]: optionId } });
       },
 
@@ -508,6 +524,37 @@ export const useExamStore = create<ExamState>()(
         });
       },
 
+      saveExamAsIncompleteAndExit: () => {
+        const state = get();
+        if (!state.exam) return;
+        saveCurrentToHistory(state, 'incomplete');
+        get().exitHistoryView();
+      },
+
+      resumeIncompleteExam: (entry: ExamHistoryEntry) => {
+        if (!entry.exam) return;
+        const firstSection = entry.exam.sections[0];
+        const defaultTimer = firstSection ? firstSection.timeMinutes * 60 : 0;
+        set({
+          exam: entry.exam,
+          studentName: entry.studentName,
+          answers: entry.answers || {},
+          essayResponses: entry.essayResponses || {},
+          audioRecordings: entry.audioRecordings || {},
+          audioTranscriptions: entry.audioTranscriptions || {},
+          timeSpent: entry.timeSpent || {},
+          currentSectionIndex: entry.resumeState?.currentSectionIndex ?? 0,
+          currentQuestionIndex: entry.resumeState?.currentQuestionIndex ?? 0,
+          phase: (entry.resumeState?.phase as ExamPhase) ?? 'exam',
+          timerSeconds: entry.resumeState?.timerSeconds ?? defaultTimer,
+          flagged: entry.resumeState?.flagged ?? {},
+          eliminated: entry.resumeState?.eliminated ?? {},
+          eliminatorMode: true,
+          timerRunning: false,
+          viewingHistoryId: null,
+        });
+      },
+
       getCurrentSection: () => {
         const state = get();
         if (!state.exam) return null;
@@ -594,7 +641,7 @@ export const useExamStore = create<ExamState>()(
               _hasHydrated: true,
               timerRunning: false,
               navModalOpen: false,
-              eliminatorMode: false,
+              eliminatorMode: true,
               isCalculatorOpen: false,
               calculatorMode: 'none',
               highlightsActive: false,

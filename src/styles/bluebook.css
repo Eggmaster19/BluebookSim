@@ -899,6 +899,111 @@ html, body, #root {
   font-size: 15px;
 }
 
+/* ── In-Exam Directions Modal Popover ── */
+.bb-directions-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.bb-directions-modal {
+  background: var(--bb-bg);
+  border: 1px solid var(--bb-border);
+  border-radius: 8px;
+  box-shadow: var(--bb-shadow-lg);
+  width: 90%;
+  max-width: 680px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: bb-modal-fade-in 0.15s ease-out;
+}
+
+@keyframes bb-modal-fade-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.bb-directions-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--bb-border-light);
+  background: var(--bb-bar);
+}
+
+.bb-directions-modal__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bb-text);
+}
+
+.bb-directions-modal__close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--bb-text-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.bb-directions-modal__close:hover {
+  background: var(--bb-border-light);
+  color: var(--bb-text);
+}
+
+.bb-directions-modal__body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.bb-directions-modal__body h1 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.bb-directions-modal__body p {
+  margin-bottom: 12px;
+}
+
+.bb-directions-modal__footer {
+  padding: 12px 24px;
+  border-top: 1px solid var(--bb-border-light);
+  display: flex;
+  justify-content: flex-end;
+  background: var(--bb-bar);
+}
+
+.bb-directions-modal__close-btn {
+  padding: 8px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 20px;
+  border: 1px solid var(--bb-border);
+  background: var(--bb-bg);
+  color: var(--bb-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bb-directions-modal__close-btn:hover {
+  background: var(--bb-surface);
+  border-color: var(--bb-text-secondary);
+}
+
 /* ═══ CHECK YOUR WORK ═════════════════════════════════════════════ */
 .bb-check {
   flex: 1;

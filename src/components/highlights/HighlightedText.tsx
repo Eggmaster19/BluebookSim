@@ -51,7 +51,7 @@ function renderMixedText(text: string, highlights: HighlightNote[], displayMath:
   return parts.map((part, index) => {
     if (part.startsWith('$$') && part.endsWith('$$')) {
       const math = part.slice(2, -2);
-      let html = '';
+      let html: string;
       try {
         html = katex.renderToString(math, {
           displayMode: displayMath,

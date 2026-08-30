@@ -65,25 +65,12 @@ export const DoneScreen: React.FC = () => {
   }).length;
 
   let correctCount = 0;
-  let incorrectCount = 0;
-  let unansweredMCQs = 0;
 
   if (hasAnswerKey) {
     mcqs.forEach((q) => {
       const selected = answers[q.id];
-      if (!selected) {
-        unansweredMCQs++;
-        incorrectCount++;
-      } else if (selected === q.correctAnswer) {
+      if (selected === q.correctAnswer) {
         correctCount++;
-      } else {
-        incorrectCount++;
-      }
-    });
-  } else {
-    mcqs.forEach((q) => {
-      if (!answers[q.id]) {
-        unansweredMCQs++;
       }
     });
   }
@@ -296,8 +283,8 @@ export const DoneScreen: React.FC = () => {
                   }
                   
                   // Color code selection
-                  let barClass = 'bb-graph-bar--neutral';
-                  let statusLabel = 'Answered';
+                  let barClass: string;
+                  let statusLabel: string;
                   
                   if (q.questionType === 'frq') {
                     if (q.frqMode === 'essay') {
@@ -310,8 +297,9 @@ export const DoneScreen: React.FC = () => {
                     }
                   } else {
                     const answered = !!answers[q.id];
-                    if (hasAnswerKey) {
-                      const correct = answers[q.id] === (q as any).correctAnswer;
+                    const correctAnswer = (q as { correctAnswer?: string }).correctAnswer;
+                    if (hasAnswerKey && correctAnswer) {
+                      const correct = answers[q.id] === correctAnswer;
                       barClass = correct ? 'bb-graph-bar--correct' : 'bb-graph-bar--incorrect';
                       statusLabel = correct ? 'Correct' : answered ? 'Incorrect' : 'Skipped / Incorrect';
                     } else {

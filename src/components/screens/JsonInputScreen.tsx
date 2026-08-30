@@ -3,7 +3,7 @@ import { useExamStore } from '../../store/examStore';
 import { generateDirections } from '../../data/common/directionsTemplate';
 import { AI_PROMPTS } from '../../data/common/aiPrompts';
 import { SECTION_CONFIGS } from '../../data/common/sectionConfig';
-import type { Exam, Question, MCQuestion, FRQuestion, ExamSection } from '../../types/ExamSchema';
+import type { Exam, Question, MCQuestion, FRQuestion, AudioResponseQuestion, ExamSection } from '../../types/ExamSchema';
 import '../../styles/bluebook.css';
 
 /* ── Exam type metadata for directions generation ── */
@@ -43,7 +43,67 @@ function sectionTagList(examType: string): string {
   return (SECTION_CONFIGS[examType] ?? []).map((s) => `"${s.sectionTag}"`).join(', ');
 }
 
-function normalizeQuestion(raw: any, index: number): Question & { _sectionTag?: string } {
+interface RawOption {
+  id?: string;
+  text?: string;
+  type?: import('../../types/ExamSchema').StimulusType;
+}
+
+interface RawPart {
+  partLabel?: string;
+  part?: string;
+  id?: string;
+  text?: string;
+  type?: import('../../types/ExamSchema').StimulusType;
+  stimulus?: import('../../types/ExamSchema').Stimulus;
+}
+
+interface RawQuestion {
+  id?: string;
+  section?: unknown;
+  type?: string;
+  questionType?: string;
+  parts?: RawPart[];
+  text?: string;
+  stimulus?: import('../../types/ExamSchema').Stimulus;
+  correctAnswer?: string;
+  explanation?: string;
+  prepTimeMinutes?: number;
+  recordingTimeMinutes?: number;
+  interlocutorAudio?: string[];
+  recordingWindows?: number;
+  windowDurationSeconds?: number;
+  options?: RawOption[];
+}
+
+interface RawSection {
+  id?: string;
+  title?: string;
+  section?: string;
+  sectionTag?: string;
+  tag?: string;
+  calculatorAllowed?: boolean;
+  calculatorType?: import('../../types/ExamSchema').CalculatorType;
+  timeMinutes?: number;
+  defaultTimeMinutes?: number;
+  suggestedTimeMinutes?: number;
+  readingPeriodMinutes?: number;
+  breakAfterMinutes?: number | null;
+  frqMode?: 'parts' | 'essay';
+  directions?: string;
+  questions?: RawQuestion[];
+}
+
+interface RawParsedExam {
+  metadata?: {
+    title?: string;
+    examType?: string;
+    subject?: string;
+  };
+  sections?: RawSection[];
+}
+
+function normalizeQuestion(raw: RawQuestion, index: number): Question & { _sectionTag?: string } {
   const id = raw.id ?? String(index + 1);
   const sectionTag = normalizeSectionTag(raw.section);
 
@@ -53,7 +113,7 @@ function normalizeQuestion(raw: any, index: number): Question & { _sectionTag?: 
       id,
       questionType: 'frq',
       text: raw.text ?? '',
-      parts: (raw.parts ?? []).map((p: any) => ({
+      parts: (raw.parts ?? []).map((p: RawPart) => ({
         partLabel: p.partLabel ?? p.part ?? p.id ?? '',
         text: p.text ?? '',
         ...(p.type && { type: p.type }),
@@ -68,7 +128,7 @@ function normalizeQuestion(raw: any, index: number): Question & { _sectionTag?: 
 
   // Detect Audio-Response
   if (raw.type === 'audio-response' || raw.questionType === 'audio-response') {
-    const arq: any = {
+    const arq: AudioResponseQuestion & { _sectionTag?: string } = {
       id,
       questionType: 'audio-response',
       text: raw.text ?? '',
@@ -88,7 +148,7 @@ function normalizeQuestion(raw: any, index: number): Question & { _sectionTag?: 
     id,
     questionType: 'mcq',
     text: raw.text ?? '',
-    options: (raw.options ?? []).map((o: any) => ({
+    options: (raw.options ?? []).map((o: RawOption) => ({
       id: o.id ?? '',
       text: o.text ?? '',
       ...(o.type && { type: o.type }),
@@ -148,9 +208,10 @@ function splitIntoSections(
     }
 
     // Strip _sectionTag before storing
-    const { _sectionTag, ...clean } = q as any;
+    const clean = { ...q };
+    delete clean._sectionTag;
     if (!tagBuckets[tag]) tagBuckets[tag] = [];
-    tagBuckets[tag].push(clean);
+    tagBuckets[tag].push(clean as Question);
   }
 
   // Build ExamSection objects — only include sections that have questions
@@ -217,33 +278,35 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
   const jsonText = stripJsonFence(raw);
   if (!jsonText) return empty;
 
-  let parsed: any;
+  let parsed: unknown;
   try {
     parsed = JSON.parse(jsonText);
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const errorMsg = e instanceof Error ? e.message : String(e);
     // Attempt to handle concatenated JSON arrays (e.g., copied back-to-back)
     try {
       const fixedRaw = `[${jsonText.replace(/\]\s*\[/g, '],[')}]`;
-      const parsedMultiple = JSON.parse(fixedRaw);
+      const parsedMultiple: unknown = JSON.parse(fixedRaw);
       if (Array.isArray(parsedMultiple) && parsedMultiple.every(Array.isArray)) {
         parsed = parsedMultiple.flat();
       } else {
-        throw new Error();
+        throw new Error('Not an array of arrays', { cause: e });
       }
-    } catch (e2: any) {
-      return { ...empty, error: `Invalid JSON: ${e.message}` };
+    } catch {
+      return { ...empty, error: `Invalid JSON: ${errorMsg}` };
     }
   }
 
   const meta = EXAM_META[examType] ?? { label: 'exam', title: 'Practice Exam', examType: 'AP', subject: 'General', studentName: 'Isaac Newton' };
 
   // ── Case 1: Full Exam object (has metadata + sections) ──
-  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.sections) {
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'sections' in parsed) {
+    const parsedExam = parsed as RawParsedExam;
     try {
       if (SECTION_CONFIGS[examType]) {
-        const questions = parsed.sections.flatMap((sec: any, si: number) => {
+        const questions = (parsedExam.sections ?? []).flatMap((sec: RawSection, si: number) => {
           const inheritedSection = normalizeSectionTag(sec.section ?? sec.sectionTag ?? sec.tag);
-          return (sec.questions ?? []).map((q: any, qi: number) =>
+          return (sec.questions ?? []).map((q: RawQuestion, qi: number) =>
             normalizeQuestion(q.section || !inheritedSection ? q : { ...q, section: inheritedSection }, si + qi)
           );
         });
@@ -253,9 +316,9 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
 
         const exam: Exam = {
           metadata: {
-            title: parsed.metadata?.title ?? meta.title,
-            examType: parsed.metadata?.examType ?? meta.examType,
-            subject: parsed.metadata?.subject ?? meta.subject,
+            title: parsedExam.metadata?.title ?? meta.title,
+            examType: parsedExam.metadata?.examType ?? meta.examType,
+            subject: parsedExam.metadata?.subject ?? meta.subject,
           },
           sections,
         };
@@ -268,8 +331,8 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
         };
       }
 
-      const sections: ExamSection[] = parsed.sections.map((sec: any, si: number) => {
-        const questions = (sec.questions ?? []).map((q: any, qi: number) => normalizeQuestion(q, qi));
+      const sections: ExamSection[] = (parsedExam.sections ?? []).map((sec: RawSection, si: number) => {
+        const questions = (sec.questions ?? []).map((q: RawQuestion, qi: number) => normalizeQuestion(q, qi));
         const calculatorType = sec.calculatorType ?? (sec.calculatorAllowed ? 'scientific' : 'none');
         return {
           id: sec.id ?? `section-${si + 1}`,
@@ -280,7 +343,7 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
           defaultTimeMinutes: sec.defaultTimeMinutes,
           suggestedTimeMinutes: sec.suggestedTimeMinutes,
           readingPeriodMinutes: sec.readingPeriodMinutes,
-          breakAfterMinutes: sec.breakAfterMinutes ?? (si < parsed.sections.length - 1 ? 10 : null),
+          breakAfterMinutes: sec.breakAfterMinutes ?? (si < (parsedExam.sections?.length ?? 0) - 1 ? 10 : null),
           frqMode: sec.frqMode,
           directions: sec.directions ?? generateDirections({
             subject: meta.subject,
@@ -299,9 +362,9 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
 
       const exam: Exam = {
         metadata: {
-          title: parsed.metadata?.title ?? meta.title,
-          examType: parsed.metadata?.examType ?? meta.examType,
-          subject: parsed.metadata?.subject ?? meta.subject,
+          title: parsedExam.metadata?.title ?? meta.title,
+          examType: parsedExam.metadata?.examType ?? meta.examType,
+          subject: parsedExam.metadata?.subject ?? meta.subject,
         },
         sections,
       };
@@ -312,8 +375,9 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
         requiredImages: collectImageFilenames(allQuestions),
         questionCount: allQuestions.length,
       };
-    } catch (e: any) {
-      return { ...empty, error: `Error processing exam structure: ${e.message}` };
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      return { ...empty, error: `Error processing exam structure: ${message}` };
     }
   }
 
@@ -324,7 +388,8 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
     }
 
     try {
-      const questions = parsed.map((q: any, i: number) => normalizeQuestion(q, i));
+      const rawQuestions = parsed as RawQuestion[];
+      const questions = rawQuestions.map((q: RawQuestion, i: number) => normalizeQuestion(q, i));
 
       // If a section config exists for this exam type, auto-split into proper sections
       if (SECTION_CONFIGS[examType]) {
@@ -379,8 +444,9 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
           isFRQ: hasFRQ,
         }),
         questions: questions.map((q) => {
-          const { _sectionTag, ...clean } = q as any;
-          return clean;
+          const clean = { ...q };
+          delete clean._sectionTag;
+          return clean as Question;
         }),
       };
 
@@ -399,8 +465,9 @@ function parseJsonInput(raw: string, examType: string): ParseResult {
         requiredImages: collectImageFilenames(questions),
         questionCount: questions.length,
       };
-    } catch (e: any) {
-      return { ...empty, error: `Error processing questions: ${e.message}` };
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      return { ...empty, error: `Error processing questions: ${message}` };
     }
   }
 
@@ -447,18 +514,27 @@ export const JsonInputScreen: React.FC = () => {
   const handleStart = () => {
     if (!exam) return;
 
-    // Inject Blob URLs into stimulus data for image questions
-    if (requiredImages.length > 0) {
-      for (const section of exam.sections) {
-        for (const q of section.questions) {
-          if (q.stimulus?.type === 'image' && imageBlobs[q.stimulus.data as string]) {
-            q.stimulus.data = imageBlobs[q.stimulus.data as string];
+    // Deep clone the exam object to preserve hook immutability
+    const finalExam: Exam = {
+      metadata: { ...exam.metadata },
+      sections: exam.sections.map((section) => ({
+        ...section,
+        questions: section.questions.map((q) => {
+          if (q.stimulus?.type === 'image' && typeof q.stimulus.data === 'string' && imageBlobs[q.stimulus.data]) {
+            return {
+              ...q,
+              stimulus: {
+                ...q.stimulus,
+                data: imageBlobs[q.stimulus.data],
+              },
+            };
           }
-        }
-      }
-    }
+          return q;
+        }),
+      })),
+    };
 
-    loadExam(exam, meta.studentName);
+    loadExam(finalExam, meta.studentName);
   };
 
   const handleFileDrop = useCallback(

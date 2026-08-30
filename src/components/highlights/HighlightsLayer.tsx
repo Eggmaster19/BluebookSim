@@ -25,11 +25,6 @@ export const HighlightsLayer: React.FC = () => {
 
   useEffect(() => {
     document.body.classList.toggle('bb-highlights-mode', highlightsActive);
-    if (!highlightsActive) {
-      setToolbar(null);
-      setCursor((current) => ({ ...current, visible: false }));
-    }
-
     return () => document.body.classList.remove('bb-highlights-mode');
   }, [highlightsActive]);
 
@@ -97,6 +92,8 @@ export const HighlightsLayer: React.FC = () => {
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [addHighlight, highlightColor, highlightUnderline, highlightsActive]);
+
+  if (!highlightsActive) return null;
 
   return (
     <>

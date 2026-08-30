@@ -12,13 +12,17 @@ let isThrottled = true;
 // Define message types
 export type WhisperMessage = 
   | { type: 'load'; model: string }
-  | { type: 'transcribe'; id: string; audioData: Float32Array; throttle: boolean }
+  | { type: 'transcribe'; id: string; audioData: Float32Array; throttle: boolean; language?: string }
   | { type: 'set_throttle'; throttle: boolean };
 
 export type WhisperResponse = 
   | { type: 'status'; status: 'loading' | 'ready' | 'error'; message?: string }
   | { type: 'transcription'; id: string; text: string }
   | { type: 'transcription_error'; id: string; error: string };
+
+interface TranscriptionChunk {
+  text: string;
+}
 
 async function getTranscriber(model = 'onnx-community/whisper-small') {
   if (!transcriber) {
@@ -67,8 +71,9 @@ self.onmessage = async (e: MessageEvent<WhisperMessage>) => {
   if (msg.type === 'load') {
     try {
       await getTranscriber(msg.model);
-    } catch (error: any) {
-      self.postMessage({ type: 'status', status: 'error', message: error.message } as WhisperResponse);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      self.postMessage({ type: 'status', status: 'error', message } as WhisperResponse);
     }
     return;
   }
@@ -89,23 +94,28 @@ self.onmessage = async (e: MessageEvent<WhisperMessage>) => {
       const output = await pipeline(msg.audioData, {
         chunk_length_s: 30, // process in 30s chunks
         stride_length_s: 5,
-        language: 'german',
+        language: msg.language || 'german',
         task: 'transcribe',
         return_timestamps: false
       });
       
+      const transcriptionText = Array.isArray(output)
+        ? (output as TranscriptionChunk[]).map(o => o.text).join(' ')
+        : (output as TranscriptionChunk).text;
+
       self.postMessage({
         type: 'transcription',
         id: msg.id,
-        text: Array.isArray(output) ? output.map(o => (o as any).text).join(' ') : (output as any).text
+        text: transcriptionText
       } as WhisperResponse);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       self.postMessage({
         type: 'transcription_error',
         id: msg.id,
-        error: error.message
+        error: errorMessage
       } as WhisperResponse);
     }
   }

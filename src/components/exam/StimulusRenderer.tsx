@@ -7,6 +7,7 @@ import { FunctionPlotRenderer } from '../FunctionPlotRenderer';
 import { SVGRenderer } from '../SVGRenderer';
 import { HighlightedText } from '../highlights/HighlightedText';
 import { AudioPlayer } from './AudioPlayer';
+import { ImageStimulus } from './ImageStimulus';
 
 interface StimulusRendererProps {
   stimulus: Stimulus;
@@ -39,6 +40,7 @@ export const StimulusRenderer: React.FC<StimulusRendererProps> = ({ stimulus, in
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function renderStimulus(stimulus: Stimulus, context?: HighlightContext) {
   switch (stimulus.type) {
     case 'text':
@@ -53,14 +55,14 @@ export function renderStimulus(stimulus: Stimulus, context?: HighlightContext) {
       );
 
     case 'katex': {
-      let html = '';
+      let html: string;
       try {
         html = katex.renderToString(stimulus.data as string, {
           displayMode: true,
           throwOnError: false,
           errorColor: '#cc0000'
         });
-      } catch (e) {
+      } catch {
         html = `<span class="katex-error" style="color: #cc0000;">${stimulus.data}</span>`;
       }
       return (
@@ -87,15 +89,7 @@ export function renderStimulus(stimulus: Stimulus, context?: HighlightContext) {
       return <SVGRenderer data={stimulus.data as string} />;
 
     case 'image':
-      return (
-        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-          <img
-            src={stimulus.data as string}
-            alt="Question diagram"
-            style={{ maxWidth: '100%', maxHeight: '300px' }}
-          />
-        </div>
-      );
+      return <ImageStimulus src={stimulus.data as string} />;
 
     default:
       return (

@@ -5,6 +5,7 @@ import { JsonInputScreen } from './components/screens/JsonInputScreen';
 
 // Layout
 import { Header } from './components/layout/Header';
+import { WarningBanner } from './components/layout/WarningBanner';
 
 import { Footer } from './components/layout/Footer';
 
@@ -14,6 +15,7 @@ import { DirectionsScreen } from './components/screens/DirectionsScreen';
 import { ExamScreen } from './components/screens/ExamScreen';
 import { CheckYourWorkScreen } from './components/screens/CheckYourWorkScreen';
 import { BreakScreen } from './components/screens/BreakScreen';
+import { UnscheduledBreakScreen } from './components/screens/UnscheduledBreakScreen';
 import { DoneScreen } from './components/screens/DoneScreen';
 import { CalculatorOverlay } from './components/exam/CalculatorOverlay';
 
@@ -78,6 +80,11 @@ const App: React.FC = () => {
     return <BreakScreen />;
   }
 
+  // ── Unscheduled Break Screen: full takeover ──
+  if (phase === 'unscheduled-break') {
+    return <UnscheduledBreakScreen />;
+  }
+
   // ── Done Screen ──
   if (phase === 'done') {
     return <DoneScreen />;
@@ -93,7 +100,7 @@ const App: React.FC = () => {
     <div className="bluebook-shell">
       {/* ── Header (always visible in directions, exam, check) ── */}
       <Header />
-
+      <WarningBanner />
 
       {/* ── Main Content ── */}
       {phase === 'directions' && <DirectionsScreen />}

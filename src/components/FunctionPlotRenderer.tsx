@@ -77,10 +77,11 @@ export const FunctionPlotRenderer: React.FC<FunctionPlotRendererProps> = ({ data
           title: primary.title,
           data: plotData,
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error('Function-plot render error:', e);
         if (isMounted) {
-          setError(e.message || 'Error rendering function plot');
+          const message = e instanceof Error ? e.message : 'Error rendering function plot';
+          setError(message);
         }
       }
     };

@@ -31,9 +31,9 @@ class WhisperManager {
     this.worker!.postMessage({ type: 'set_throttle', throttle } as WhisperMessage);
   }
 
-  transcribe(id: string, audioData: Float32Array) {
+  transcribe(id: string, audioData: Float32Array, language?: string) {
     if (!this.worker) this.init();
-    this.worker!.postMessage({ type: 'transcribe', id, audioData, throttle: this.isThrottled } as WhisperMessage);
+    this.worker!.postMessage({ type: 'transcribe', id, audioData, throttle: this.isThrottled, language } as WhisperMessage);
   }
 }
 

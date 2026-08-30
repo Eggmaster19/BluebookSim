@@ -8,12 +8,17 @@ export const HistoryScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const deleteFromHistory = useHistoryStore((s) => s.deleteFromHistory);
   const clearAllHistory = useHistoryStore((s) => s.clearAllHistory);
   const loadHistoryEntry = useExamStore((s) => s.loadHistoryEntry);
+  const resumeIncompleteExam = useExamStore((s) => s.resumeIncompleteExam);
 
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleView = (entry: ExamHistoryEntry) => {
     loadHistoryEntry(entry.id);
+  };
+
+  const handleResume = (entry: ExamHistoryEntry) => {
+    resumeIncompleteExam(entry);
   };
 
   const handleDelete = (id: string) => {
@@ -31,6 +36,18 @@ export const HistoryScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const allQuestions = entry.exam.sections.flatMap((s) => s.questions);
     const mcqs = allQuestions.filter((q) => q.questionType === 'mcq');
     const hasKey = mcqs.some((q) => !!q.correctAnswer);
+
+    if (entry.status === 'incomplete') {
+      const answered = allQuestions.filter((q) => {
+        if (entry.answers[q.id]) return true;
+        if (q.questionType === 'frq' && entry.essayResponses[q.id]) {
+          const text = entry.essayResponses[q.id].replace(/<[^>]*>/g, '').trim();
+          return text.length > 0;
+        }
+        return false;
+      }).length;
+      return `${answered}/${allQuestions.length} answered`;
+    }
 
     if (!hasKey || mcqs.length === 0) {
       // Count answered
@@ -85,8 +102,8 @@ export const HistoryScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           <h1 className="bb-history-title">Previous Tests</h1>
           <p className="bb-history-subtitle">
             {history.length === 0
-              ? 'No completed tests yet.'
-              : `${history.length} completed test${history.length !== 1 ? 's' : ''}`}
+              ? 'No saved tests yet.'
+              : `${history.length} saved test${history.length !== 1 ? 's' : ''}`}
           </p>
         </div>
 
@@ -122,7 +139,8 @@ export const HistoryScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <tr>
                   <th>Date</th>
                   <th>Subject</th>
-                  <th>Score</th>
+                  <th>Status</th>
+                  <th>Score / Progress</th>
                   <th>Time</th>
                   <th></th>
                 </tr>
@@ -136,6 +154,31 @@ export const HistoryScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     <td className="bb-history-cell-subject">
                       {entry.exam.metadata.subject}
                     </td>
+                    <td className="bb-history-cell-status">
+                      {entry.status === 'incomplete' ? (
+                        <span style={{
+                          backgroundColor: '#fef3c7',
+                          color: '#92400e',
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: 700
+                        }}>
+                          Incomplete
+                        </span>
+                      ) : (
+                        <span style={{
+                          backgroundColor: '#dcfce7',
+                          color: '#166534',
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: 700
+                        }}>
+                          Completed
+                        </span>
+                      )}
+                    </td>
                     <td className="bb-history-cell-score">
                       {getScoreInfo(entry)}
                     </td>
@@ -143,6 +186,25 @@ export const HistoryScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                       {getTotalTime(entry)}
                     </td>
                     <td className="bb-history-cell-actions">
+                      {entry.status === 'incomplete' && (
+                        <button
+                          className="bb-history-resume-btn"
+                          style={{
+                            backgroundColor: '#ffd100',
+                            color: '#000000',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '4px 10px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            marginRight: '6px'
+                          }}
+                          onClick={() => handleResume(entry)}
+                        >
+                          resume
+                        </button>
+                      )}
                       <button
                         className="bb-history-view-btn"
                         onClick={() => handleView(entry)}

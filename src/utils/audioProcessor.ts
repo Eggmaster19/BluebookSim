@@ -42,7 +42,8 @@ export async function trimSilenceFromAudioBlob(blob: Blob, threshold = 0.01, min
   const arrayBuffer = await blob.arrayBuffer();
   
   // First decode the audio to get its original length
-  const tempContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  const tempContext = new AudioContextClass();
   const tempBuffer = await tempContext.decodeAudioData(arrayBuffer.slice(0));
   
   // Now create an offline context at 16000Hz (required by Whisper)
@@ -64,7 +65,7 @@ export async function trimSilenceFromAudioBlob(blob: Blob, threshold = 0.01, min
   const windowSize = Math.floor(sampleRate * 0.05); // 50ms window
   
   let isSpeaking = false;
-  let activeSegments: Float32Array[] = [];
+  const activeSegments: Float32Array[] = [];
   let currentSegment: number[] = [];
   
   for (let i = 0; i < channelData.length; i += windowSize) {

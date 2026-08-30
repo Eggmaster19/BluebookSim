@@ -85,7 +85,7 @@ function generateEconDirections(subject: string, options: DirectionOptions): str
 function generateCalculusDirections(subject: string, options: DirectionOptions): string {
   const { sectionTitle, questionCount, timeMinutes, calculatorPolicy, isFRQ } = options;
 
-  let calculatorText = '';
+  let calculatorText: string;
   if (calculatorPolicy === 'none') {
     calculatorText = '<p><strong>No calculator is allowed for this part of the exam.</strong></p>';
   } else if (calculatorPolicy === 'required') {
@@ -98,7 +98,7 @@ function generateCalculusDirections(subject: string, options: DirectionOptions):
     calculatorText = '<p><strong>A calculator is allowed for this part of the exam.</strong></p>';
   }
 
-  let instructionsText = '';
+  let instructionsText: string;
   if (isFRQ) {
     instructionsText = `
 <p>You may use the available paper for scratch work and planning, but only work written in the free-response booklet will be scored. Any work done on scratch paper will not be scored. In the free-response booklet, write your solution to each part of each question in the space provided for that part. For questions that have sub-parts, be sure to label those clearly in your solution. Use a pencil or a pen with black or dark blue ink.</p>`;
@@ -168,7 +168,7 @@ const EXAM_DIRECTIONS: Record<string, (options: DirectionOptions) => string> = {
   bio: (options) => {
     const { subject, sectionTitle, questionCount, timeMinutes, calculatorPolicy, isFRQ } = options;
 
-    let calculatorText = '';
+    let calculatorText: string;
     if (calculatorPolicy === 'none') {
       calculatorText = '<p><strong>A calculator is not allowed for this part of the exam.</strong></p>';
     } else if (calculatorPolicy === 'required') {
@@ -177,7 +177,7 @@ const EXAM_DIRECTIONS: Record<string, (options: DirectionOptions) => string> = {
       calculatorText = '<p><strong>A four-function calculator is allowed for this part of the exam.</strong></p>';
     }
 
-    let instructionsText = '';
+    let instructionsText: string;
     if (isFRQ) {
       instructionsText = `
 <p>Read each question carefully and completely. Write your response in the space provided for each question. Only material written in the space provided will be scored.</p>
@@ -269,7 +269,7 @@ export function generateDirections(options: DirectionOptions): string {
 function generateGenericDirections(options: DirectionOptions): string {
   const { subject, sectionTitle, questionCount, timeMinutes, calculatorPolicy, isFRQ } = options;
 
-  let calculatorText = '';
+  let calculatorText: string;
   if (calculatorPolicy === 'none') {
     calculatorText = '<p><strong>A calculator is not allowed for this part of the exam.</strong></p>';
   } else if (calculatorPolicy === 'required') {
@@ -278,7 +278,7 @@ function generateGenericDirections(options: DirectionOptions): string {
     calculatorText = '<p><strong>A calculator is allowed for this part of the exam.</strong></p>';
   }
 
-  let instructionsText = '';
+  let instructionsText: string;
   if (isFRQ) {
     instructionsText = `
 <p>Write your response clearly. Show all of your work.</p>`;

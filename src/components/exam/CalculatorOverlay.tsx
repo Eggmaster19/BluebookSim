@@ -30,7 +30,11 @@ export const CalculatorOverlay: React.FC = () => {
   const calculatorType = section?.calculatorType ?? 'none';
   const calculatorAvailable = calculatorType !== 'none';
 
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
+    width: 540,
+    height: 580,
+  });
+
   const draggableNodeRef = useRef<HTMLDivElement>(null);
   const calcContainerRef = useRef<HTMLDivElement>(null);
   const calculatorInstance = useRef<DesmosCalculatorInstance | null>(null);
@@ -82,12 +86,41 @@ export const CalculatorOverlay: React.FC = () => {
     };
   }, [isCalculatorOpen, calculatorAvailable, calculatorType, calculatorMode, setCalculatorMode]);
 
-  // Adjust resize logic when toggling expand/minimize
+  // Adjust resize logic when dimensions change
   useEffect(() => {
     if (calculatorInstance.current) {
       calculatorInstance.current.resize();
     }
-  }, [isExpanded]);
+  }, [dimensions]);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = dimensions.width;
+    const startHeight = dimensions.height;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const newWidth = Math.max(380, Math.min(window.innerWidth - 60, startWidth + (moveEvent.clientX - startX)));
+      const newHeight = Math.max(400, Math.min(window.innerHeight - 60, startHeight + (moveEvent.clientY - startY)));
+      setDimensions({ width: newWidth, height: newHeight });
+      if (calculatorInstance.current) {
+        calculatorInstance.current.resize();
+      }
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      if (calculatorInstance.current) {
+        calculatorInstance.current.resize();
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
 
   if (!isCalculatorOpen || !calculatorAvailable) return null;
 
@@ -99,11 +132,11 @@ export const CalculatorOverlay: React.FC = () => {
           position: 'absolute',
           top: '100px',
           left: '100px',
-          width: isExpanded ? '800px' : '450px',
-          height: isExpanded ? '600px' : '550px',
+          width: `${dimensions.width}px`,
+          height: `${dimensions.height}px`,
           backgroundColor: '#fff',
           borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 9999,
@@ -115,7 +148,7 @@ export const CalculatorOverlay: React.FC = () => {
         <div
           className="calculator-header"
           style={{
-            height: '44px',
+            height: '46px',
             backgroundColor: '#1a1a1a',
             borderBottom: '1px solid #000',
             display: 'flex',
@@ -126,14 +159,14 @@ export const CalculatorOverlay: React.FC = () => {
             userSelect: 'none',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {calculatorType === 'both' ? (
               <div style={{ display: 'flex', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden' }}>
                 <button
-                  onMouseDown={(e) => e.stopPropagation()} // prevent dragging when clicking
+                  onMouseDown={(e) => e.stopPropagation()}
                   onClick={() => setCalculatorMode('graphing')}
                   style={{
-                    padding: '4px 10px',
+                    padding: '4px 12px',
                     fontSize: '13px',
                     fontWeight: 600,
                     backgroundColor: calculatorMode === 'graphing' ? '#ffffff' : '#1a1a1a',
@@ -142,7 +175,7 @@ export const CalculatorOverlay: React.FC = () => {
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '6px',
                   }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -155,7 +188,7 @@ export const CalculatorOverlay: React.FC = () => {
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={() => setCalculatorMode('scientific')}
                   style={{
-                    padding: '4px 10px',
+                    padding: '4px 12px',
                     fontSize: '13px',
                     fontWeight: 600,
                     backgroundColor: calculatorMode === 'scientific' ? '#ffffff' : '#1a1a1a',
@@ -165,7 +198,7 @@ export const CalculatorOverlay: React.FC = () => {
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '6px',
                   }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -185,38 +218,20 @@ export const CalculatorOverlay: React.FC = () => {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {/* Draggable drag handle icon */}
-            <div style={{ display: 'flex', alignItems: 'center', color: '#888', marginRight: '16px', cursor: 'grab' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
-                <circle cx="16" cy="8" r="1.5" fill="currentColor"/>
-                <circle cx="8" cy="16" r="1.5" fill="currentColor"/>
-                <circle cx="16" cy="16" r="1.5" fill="currentColor"/>
-              </svg>
-            </div>
-            <button
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={() => setIsExpanded(!isExpanded)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '4px',
-              }}
-              title={isExpanded ? 'Minimize' : 'Expand'}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                {isExpanded ? (
-                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
-                ) : (
-                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-                )}
-              </svg>
-            </button>
+          {/* Centered drag handle icon */}
+          <div style={{ display: 'flex', alignItems: 'center', color: '#888', cursor: 'grab' }} title="Drag to move">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="9" cy="8" r="1.5" />
+              <circle cx="15" cy="8" r="1.5" />
+              <circle cx="9" cy="12" r="1.5" />
+              <circle cx="15" cy="12" r="1.5" />
+              <circle cx="9" cy="16" r="1.5" />
+              <circle cx="15" cy="16" r="1.5" />
+            </svg>
+          </div>
+
+          {/* Right close button */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
             <button
               onMouseDown={(e) => e.stopPropagation()}
               onClick={closeCalculator}
@@ -240,7 +255,33 @@ export const CalculatorOverlay: React.FC = () => {
         </div>
 
         {/* Calculator Content */}
-        <div ref={calcContainerRef} style={{ flex: 1, width: '100%', height: '100%' }} />
+        <div ref={calcContainerRef} style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }} />
+
+        {/* Bottom Right Resize Handle */}
+        <div
+          onMouseDown={handleResizeStart}
+          style={{
+            position: 'absolute',
+            bottom: '2px',
+            right: '2px',
+            width: '18px',
+            height: '18px',
+            cursor: 'nwse-resize',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#888',
+            userSelect: 'none',
+            zIndex: 10,
+          }}
+          title="Drag to resize"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="19" y1="5" x2="5" y2="19" />
+            <line x1="19" y1="11" x2="11" y2="19" />
+            <line x1="19" y1="17" x2="17" y2="19" />
+          </svg>
+        </div>
       </div>
     </Draggable>
   );

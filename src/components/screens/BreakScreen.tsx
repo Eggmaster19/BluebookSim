@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useExamStore } from '../../store/examStore';
 
 export const BreakScreen: React.FC = () => {
@@ -6,7 +6,7 @@ export const BreakScreen: React.FC = () => {
   const setPhase = useExamStore((s) => s.setPhase);
   const breakDuration = useExamStore((s) => s.breakDuration);
   const tickBreak = useExamStore((s) => s.tickBreak);
-  const initialDuration = useRef(breakDuration);
+  const [initialDuration] = useState(breakDuration);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -20,9 +20,7 @@ export const BreakScreen: React.FC = () => {
   const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
   // Short break (≤ 2 min) vs long break (10 min)
-  // Use the initial breakDuration from the store to determine break type
-  // (breakDuration ticks down, but we want the label to stay consistent)
-  const isShortBreak = initialDuration.current <= 120;
+  const isShortBreak = initialDuration <= 120;
 
   const handleResume = () => {
     setPhase('directions');

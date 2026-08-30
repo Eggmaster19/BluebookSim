@@ -6,7 +6,7 @@ import type { Exam } from '../types/ExamSchema';
 /** Snapshot of a completed exam for the history archive */
 export interface ExamHistoryEntry {
   id: string;
-  timestamp: number;                        // Date.now()
+  timestamp: number;
   studentName: string;
   exam: Exam;
   answers: Record<string, string>;
@@ -14,6 +14,15 @@ export interface ExamHistoryEntry {
   audioRecordings?: Record<string, string>;
   audioTranscriptions?: Record<string, string>;
   timeSpent: Record<string, number>;
+  status?: 'completed' | 'incomplete';
+  resumeState?: {
+    currentSectionIndex: number;
+    currentQuestionIndex: number;
+    phase: string;
+    timerSeconds: number;
+    flagged: Record<string, boolean>;
+    eliminated: Record<string, string[]>;
+  };
 }
 
 interface HistoryState {
@@ -32,7 +41,10 @@ export const useHistoryStore = create<HistoryState>()(
 
       saveToHistory: (entry) =>
         set((state) => ({
-          history: [entry, ...state.history],
+          history: [
+            ...state.history.filter((e) => e.id !== entry.id),
+            entry,
+          ],
         })),
 
       deleteFromHistory: (id) =>
