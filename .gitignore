@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local instructions & assets
+GEMINI.md
+Screenshots/
+Screenshots
