@@ -1653,6 +1653,13 @@ html, body, #root {
   color: #ffffff;
 }
 
+.selection-container select optgroup {
+  background: #111111;
+  color: #aaaaaa;
+  font-weight: 600;
+  font-size: 15px;
+}
+
 .next-btn {
   background: transparent;
   color: #ffffff;

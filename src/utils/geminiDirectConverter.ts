@@ -30,7 +30,7 @@ export async function convertPdfWithGemini(
     reader.readAsDataURL(pdfFile);
   });
 
-  onProgress?.('Sending PDF to Gemini (this may take 15-45 seconds)...');
+  onProgress?.('Sending PDF to Gemini (this may take a few minutes)');
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey.trim()}`;
 
@@ -86,7 +86,7 @@ export async function convertPdfWithGemini(
   const candidate = data.candidates?.[0];
 
   if (candidate?.finishReason === 'RECITATION') {
-    throw new Error('Gemini stopped output due to copyright/recitation detection. The prompt now includes [PartyMor] tags to bypass this filter.');
+    throw new Error('Gemini stopped output due to copyright/recitation detection. The prompt now includes [komisch] tags to bypass this filter.');
   }
 
   // When thinking is enabled, candidate.content.parts may contain internal thoughts ({ thought: true })
@@ -104,6 +104,8 @@ export async function convertPdfWithGemini(
 
   // Strip anti-recitation tags if present
   const cleanedText = text
+    .replace(/\s*\[komisch\]\s*/gi, ' ')
+    .replace(/\[komisch\]/gi, '')
     .replace(/\s*\[PartyMor\]\s*/gi, ' ')
     .replace(/\s*\[pm\]\s*/gi, ' ')
     .replace(/\[PartyMor\]/gi, '')

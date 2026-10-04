@@ -4,18 +4,79 @@ import { generateDirections } from '../data/common/directionsTemplate';
 import { walkExamMedia, isAudioReference, type MediaManifestItem, type MediaRequirement } from './mediaWalker';
 
 export const EXAM_META: Record<string, { label: string; title: string; examType: string; subject: string; studentName: string }> = {
-  calc_ab: { label: 'calc ab', title: 'AP Calculus AB Practice', examType: 'AP', subject: 'Calculus AB', studentName: 'Gottfried Leibniz' },
-  calc_bc: { label: 'calc bc', title: 'AP Calculus BC Practice', examType: 'AP', subject: 'Calculus BC', studentName: 'Isaac Newton' },
+  // Existing subjects
+  calc: { label: 'calc', title: 'AP Calculus Practice', examType: 'AP', subject: 'Calculus', studentName: 'Isaac Newton' },
+  calc_ab: { label: 'calc', title: 'AP Calculus Practice', examType: 'AP', subject: 'Calculus', studentName: 'Isaac Newton' },
+  calc_bc: { label: 'calc', title: 'AP Calculus Practice', examType: 'AP', subject: 'Calculus', studentName: 'Isaac Newton' },
   bio: { label: 'bio', title: 'AP Biology Practice', examType: 'AP', subject: 'Biology', studentName: 'Gregor Mendel' },
   lit: { label: 'lit', title: 'AP English Literature Practice', examType: 'AP', subject: 'English Literature and Composition', studentName: 'William Shakespeare' },
   phys_mech: { label: 'mech', title: 'AP Physics C: Mechanics Practice', examType: 'AP', subject: 'Physics C: Mechanics', studentName: 'Albert Einstein' },
   phys_em: { label: 'e&m', title: 'AP Physics C: E&M Practice', examType: 'AP', subject: 'Physics C: Electricity and Magnetism', studentName: 'James Maxwell' },
   econ_macro: { label: 'macro', title: 'AP Macroeconomics Practice', examType: 'AP', subject: 'Macroeconomics', studentName: 'John Keynes' },
   econ_micro: { label: 'micro', title: 'AP Microeconomics Practice', examType: 'AP', subject: 'Microeconomics', studentName: 'Adam Smith' },
-  // ARCHIVED: Foreign language exam
-  // german: { label: 'german', title: 'AP German Language and Culture Practice', examType: 'AP', subject: 'German Language and Culture', studentName: 'Johann Goethe' },
+
+  // I. History and Social Sciences
+  us_hist: { label: 'apush', title: 'AP United States History Practice', examType: 'AP', subject: 'United States History', studentName: 'Frederick Jackson Turner' },
+  euro_hist: { label: 'euro', title: 'AP European History Practice', examType: 'AP', subject: 'European History', studentName: 'Leopold von Ranke' },
+  world_hist: { label: 'world', title: 'AP World History: Modern Practice', examType: 'AP', subject: 'World History: Modern', studentName: 'Ibn Khaldun' },
+  us_gov: { label: 'gov', title: 'AP U.S. Government and Politics Practice', examType: 'AP', subject: 'United States Government and Politics', studentName: 'James Madison' },
+  comp_gov: { label: 'comp gov', title: 'AP Comparative Government and Politics Practice', examType: 'AP', subject: 'Comparative Government and Politics', studentName: 'Alexis de Tocqueville' },
+  human_geo: { label: 'hug', title: 'AP Human Geography Practice', examType: 'AP', subject: 'Human Geography', studentName: 'Carl Sauer' },
+  african_am_studies: { label: 'aas', title: 'AP African American Studies Practice', examType: 'AP', subject: 'African American Studies', studentName: 'W.E.B. Du Bois' },
+  psych: { label: 'psych', title: 'AP Psychology Practice', examType: 'AP', subject: 'Psychology', studentName: 'Wilhelm Wundt' },
+
+  // II. STEM and Sciences
+  phys_1: { label: 'physics 1', title: 'AP Physics 1 Practice', examType: 'AP', subject: 'Physics 1: Algebra-Based', studentName: 'Galileo Galilei' },
+  phys_2: { label: 'physics 2', title: 'AP Physics 2 Practice', examType: 'AP', subject: 'Physics 2: Algebra-Based', studentName: 'Michael Faraday' },
+  env_sci: { label: 'apes', title: 'AP Environmental Science Practice', examType: 'AP', subject: 'Environmental Science', studentName: 'Rachel Carson' },
+
+  // III. Mathematics and Computer Science
+  stats: { label: 'stats', title: 'AP Statistics Practice', examType: 'AP', subject: 'Statistics', studentName: 'Ronald Fisher' },
+  precalc: { label: 'precalc', title: 'AP Precalculus Practice', examType: 'AP', subject: 'Precalculus', studentName: 'Leonhard Euler' },
+  csa: { label: 'csa', title: 'AP Computer Science A Practice', examType: 'AP', subject: 'Computer Science A', studentName: 'Ada Lovelace' },
+  csp: { label: 'csp', title: 'AP Computer Science Principles Practice', examType: 'AP', subject: 'Computer Science Principles', studentName: 'Alan Turing' },
+
+  // IV. English Language
+  lang: { label: 'lang', title: 'AP English Language Practice', examType: 'AP', subject: 'English Language and Composition', studentName: 'Aristotle' },
+
+  // V. AP Career Kickstart Frameworks
+  business_finance: { label: 'business', title: 'AP Business with Personal Finance Practice', examType: 'AP', subject: 'Business with Personal Finance', studentName: 'Benjamin Franklin' },
+  cybersecurity: { label: 'cybersecurity', title: 'AP Cybersecurity Practice', examType: 'AP', subject: 'Cybersecurity', studentName: 'Claude Shannon' },
+
+  // VI. Arts
+  art_hist: { label: 'art history', title: 'AP Art History Practice', examType: 'AP', subject: 'Art History', studentName: 'Johann Joachim Winckelmann' },
+
+  // Simulator test
   test: { label: 'test', title: 'Simulator Test', examType: 'TEST', subject: 'Testing', studentName: 'Ben Baumgartner' },
 };
+
+// Aliases
+EXAM_META['apush'] = EXAM_META['us_hist'];
+EXAM_META['ush'] = EXAM_META['us_hist'];
+EXAM_META['ap_ush'] = EXAM_META['us_hist'];
+EXAM_META['euro'] = EXAM_META['euro_hist'];
+EXAM_META['ap_euro'] = EXAM_META['euro_hist'];
+EXAM_META['world_'] = EXAM_META['world_hist'];
+EXAM_META['world'] = EXAM_META['world_hist'];
+EXAM_META['ap_world'] = EXAM_META['world_hist'];
+EXAM_META['gov'] = EXAM_META['us_gov'];
+EXAM_META['hug'] = EXAM_META['human_geo'];
+EXAM_META['aas'] = EXAM_META['african_am_studies'];
+EXAM_META['macro'] = EXAM_META['econ_macro'];
+EXAM_META['micro'] = EXAM_META['econ_micro'];
+EXAM_META['mech'] = EXAM_META['phys_mech'];
+EXAM_META['em'] = EXAM_META['phys_em'];
+EXAM_META['apes'] = EXAM_META['env_sci'];
+EXAM_META['physics_1'] = EXAM_META['phys_1'];
+EXAM_META['physics_2'] = EXAM_META['phys_2'];
+EXAM_META['cs_a'] = EXAM_META['csa'];
+EXAM_META['compsci_a'] = EXAM_META['csa'];
+EXAM_META['cs_principles'] = EXAM_META['csp'];
+EXAM_META['compsci_principles'] = EXAM_META['csp'];
+EXAM_META['english_lang'] = EXAM_META['lang'];
+EXAM_META['business'] = EXAM_META['business_finance'];
+EXAM_META['cyber'] = EXAM_META['cybersecurity'];
+EXAM_META['arthistory'] = EXAM_META['art_hist'];
 
 export interface ExamParseResult {
   exam: Exam | null;
@@ -42,7 +103,9 @@ export function cleanJsonString(raw: string): string {
     text = fenceMatch[1].trim();
   }
 
-  // Strip anti-recitation dummy tags (e.g. [PartyMor], [pm]) used to defeat LLM copyright blocks
+  // Strip anti-recitation dummy tags (e.g. [komisch], [PartyMor], [pm]) used to defeat LLM copyright blocks
+  text = text.replace(/\s*\[komisch\]\s*/gi, ' ');
+  text = text.replace(/\[komisch\]/gi, '');
   text = text.replace(/\s*\[PartyMor\]\s*/gi, ' ');
   text = text.replace(/\s*\[pm\]\s*/gi, ' ');
   text = text.replace(/\[PartyMor\]/gi, '');
@@ -154,7 +217,11 @@ export function cleanJsonString(raw: string): string {
  * Accurately tracks quotes (including smart quotes), escape sequences, and comments.
  */
 export function extractJsonChunksByScanning(raw: string): string[] {
-  let text = raw.replace(/\s*\[PartyMor\]\s*/gi, ' ').replace(/\s*\[pm\]\s*/gi, ' ');
+  let text = raw
+    .replace(/\s*\[komisch\]\s*/gi, ' ')
+    .replace(/\[komisch\]/gi, '')
+    .replace(/\s*\[PartyMor\]\s*/gi, ' ')
+    .replace(/\s*\[pm\]\s*/gi, ' ');
   text = text.replace(/\[PartyMor\]/gi, '').replace(/\[pm\]/gi, '');
 
   const chunks: string[] = [];
@@ -671,7 +738,20 @@ function organizeIntoSections(
       return;
     }
 
-    const template = templatesByTag.get(tag);
+    const normTag = tag.toUpperCase().trim();
+    let template = templatesByTag.get(normTag);
+    if (!template) {
+      if ((normTag === '1' || normTag === 'PART A') && templatesByTag.has('1A') && q.questionType === 'mcq') {
+        template = templatesByTag.get('1A');
+      } else if ((normTag === '2' || normTag === 'PART A' || normTag === 'PART B') && templatesByTag.has('2A') && q.questionType === 'frq') {
+        template = templatesByTag.get('2A');
+      } else if ((normTag === '1' || normTag === 'PART A') && templatesByTag.has('EOC_A')) {
+        template = templatesByTag.get('EOC_A');
+      } else if ((normTag === '2' || normTag === 'PART B') && templatesByTag.has('EOC_B')) {
+        template = templatesByTag.get('EOC_B');
+      }
+    }
+
     if (!template) {
       errors.push(`Question ${idx + 1} has invalid section "${tag}". Valid tags are: ${tagList}.`);
       return;
@@ -686,8 +766,9 @@ function organizeIntoSections(
 
     const clean = { ...q };
     delete clean._sectionTag;
-    if (!tagBuckets[tag]) tagBuckets[tag] = [];
-    tagBuckets[tag].push(clean as Question);
+    const bucketKey = template.sectionTag;
+    if (!tagBuckets[bucketKey]) tagBuckets[bucketKey] = [];
+    tagBuckets[bucketKey].push(clean as Question);
   });
 
   if (errors.length > 0) {

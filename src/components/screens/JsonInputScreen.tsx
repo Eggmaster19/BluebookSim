@@ -34,8 +34,8 @@ export const JsonInputScreen: React.FC = () => {
   const [isGeminiProcessing, setIsGeminiProcessing] = useState(false);
   const [geminiStatus, setGeminiStatus] = useState<string | null>(null);
 
-  const examType = selectedExamType ?? 'calc_ab';
-  const meta = EXAM_META[examType] ?? EXAM_META['calc_ab'];
+  const examType = selectedExamType ?? 'calc';
+  const meta = EXAM_META[examType] ?? EXAM_META['calc'];
   const aiPrompt = useMemo(() => buildSubjectPrompt(examType), [examType]);
 
   // Save Gemini API key locally

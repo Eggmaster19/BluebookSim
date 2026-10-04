@@ -144,7 +144,144 @@ ${instructionsText}
  * If an exam type has an entry here, it will be used instead of the
  * generic fallback. Each generator receives the same DirectionOptions.
  */
+
+/* ─── Additional Subject Direction Generators ───────────────────────── */
+
+function generateHistoryDirections(subject: string, options: DirectionOptions): string {
+  const { sectionTitle, questionCount, timeMinutes, isFRQ } = options;
+  const timeDisplay = timeMinutes >= 60
+    ? `${Math.floor(timeMinutes / 60)} hour${Math.floor(timeMinutes / 60) > 1 ? 's' : ''}${timeMinutes % 60 > 0 ? ` and ${timeMinutes % 60} minutes` : ''}`
+    : `${timeMinutes} minutes`;
+
+  if (isFRQ) {
+    const isDBQ = sectionTitle.includes('Document-Based') || sectionTitle.includes('2A');
+    const isLEQ = sectionTitle.includes('Long Essay') || sectionTitle.includes('2B');
+    const isSAQ = sectionTitle.includes('Short Answer') || sectionTitle.includes('1B');
+
+    let specificGuidance = '<p>Write your responses directly into the text editor. Your work will be saved automatically as you type.</p>';
+    if (isDBQ) {
+      specificGuidance = '<p><strong>Document-Based Question:</strong> Suggested reading and planning time is 15 minutes. Spend approximately 45 minutes writing your response. Analyze the provided primary sources and construct a coherent historical argument supported by documentary and outside historical evidence.</p>';
+    } else if (isLEQ) {
+      specificGuidance = '<p><strong>Long Essay Question:</strong> Spend approximately 40 minutes writing your response. Formulate a defensible thesis, analyze historical causality, continuity/change, or comparison, and support your argument with specific historical evidence.</p>';
+    } else if (isSAQ) {
+      specificGuidance = '<p><strong>Short-Answer Questions:</strong> Respond to all parts of each prompt. Answers must be written in complete sentences; bullet points or outline fragments will not receive credit.</p>';
+    }
+
+    return `<h1>${sectionTitle} Directions</h1>
+<p><strong>The directions that follow are what you will see on exam day. This untimed preview represents the functionality you will encounter on exam day.</strong></p>
+<p style="text-align:center">${subject}</p>
+<p>${sectionTitle} has ${questionCount} free-response prompt${questionCount === 1 ? '' : 's'} and lasts ${timeDisplay}.</p>
+<p><strong>Calculators are NOT permitted for this section.</strong></p>
+${specificGuidance}
+<p>You may use scratch paper for notes and outlining, but credit will only be awarded for responses typed into this application.</p>
+<p>You can go back and forth between questions in this section until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
+  }
+
+  return `<h1>${sectionTitle} Directions</h1>
+<p><strong>The directions that follow are what you will see on exam day.</strong></p>
+<p style="text-align:center">${subject}</p>
+<p>${sectionTitle} has ${questionCount} multiple-choice questions and lasts ${timeDisplay}.</p>
+<p>Questions in this section are presented in stimulus sets anchored to primary documents, historical interpretations, maps, charts, or images. Choose the single best answer for each question.</p>
+<p><strong>Calculators are NOT permitted on this exam.</strong></p>
+<p>You can go back and forth between questions in this section until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
+}
+
+function generatePhysicsAlgebraDirections(subject: string, options: DirectionOptions): string {
+  const { sectionTitle, questionCount, timeMinutes, isFRQ } = options;
+  const timeDisplay = timeMinutes >= 60
+    ? `${Math.floor(timeMinutes / 60)} hour${Math.floor(timeMinutes / 60) > 1 ? 's' : ''}${timeMinutes % 60 > 0 ? ` and ${timeMinutes % 60} minutes` : ''}`
+    : `${timeMinutes} minutes`;
+
+  if (isFRQ) {
+    return `<h1>${sectionTitle} Directions</h1>
+<p><strong>The directions that follow represent what you will see on exam day for the Hybrid Digital administration.</strong></p>
+<p style="text-align:center">${subject}</p>
+<p>${sectionTitle} has ${questionCount} questions and lasts ${timeDisplay}.</p>
+<div style="border: 2px solid #ffcc00; padding: 12px; margin: 12px 0; border-radius: 4px; background: rgba(255, 204, 0, 0.1);">
+  <p style="margin: 0;"><strong>HYBRID DIGITAL NOTICE:</strong> Questions are displayed on screen in this application, but <strong>all answers, derivations, diagrams, and mathematical work must be handwritten in your paper free-response exam booklet</strong>. Work typed on screen or written on scratch paper will NOT be scored.</p>
+</div>
+<p>A calculator is allowed in this section. You may use an approved handheld calculator or the built-in Desmos calculator available in this application. The AP Physics equation tables are accessible throughout this section.</p>
+<p>Show all your work clearly. Label parts (e.g., A, B, C) and indicate units for all numerical results.</p>
+<p>You can go back and forth between questions in this section until time expires. The clock will turn red when 5 minutes remain.</p>`;
+  }
+
+  return `<h1>${sectionTitle} Directions</h1>
+<p><strong>The directions that follow are what you will see on exam day.</strong></p>
+<p style="text-align:center">${subject}</p>
+<p>${sectionTitle} has ${questionCount} multiple-choice questions and lasts ${timeDisplay}.</p>
+<p>All questions are single-select items with four answer choices (A–D). Select the best answer for each question.</p>
+<p>A calculator is allowed. Handheld calculators and the built-in Desmos calculator are permitted. Equation tables are accessible on screen.</p>
+<p>You can go back and forth between questions in this section until time expires. The clock will turn red when 5 minutes remain.</p>`;
+}
+
+function generatePrecalcDirections(options: DirectionOptions): string {
+  const { sectionTitle, questionCount, timeMinutes, calculatorPolicy, isFRQ } = options;
+  const timeDisplay = timeMinutes >= 60
+    ? `${Math.floor(timeMinutes / 60)} hour${Math.floor(timeMinutes / 60) > 1 ? 's' : ''}${timeMinutes % 60 > 0 ? ` and ${timeMinutes % 60} minutes` : ''}`
+    : `${timeMinutes} minutes`;
+
+  if (isFRQ) {
+    const calcNotice = calculatorPolicy === 'required'
+      ? '<p><strong>A graphing calculator is REQUIRED for Part A.</strong> You may use an approved handheld calculator or the built-in Desmos graphing calculator.</p>'
+      : '<p><strong>NO calculator is allowed for Part B.</strong> You may continue working on Part A questions during this time, but without calculator assistance.</p>';
+
+    return `<h1>${sectionTitle} Directions</h1>
+<p style="text-align:center">AP Precalculus</p>
+<p>${sectionTitle} has ${questionCount} questions and lasts ${timeDisplay}.</p>
+<div style="border: 2px solid #ffcc00; padding: 12px; margin: 12px 0; border-radius: 4px; background: rgba(255, 204, 0, 0.1);">
+  <p style="margin: 0;"><strong>HYBRID DIGITAL NOTICE:</strong> Questions are displayed digitally on screen, but <strong>all mathematical work and solutions must be handwritten in your paper free-response booklet</strong>.</p>
+</div>
+${calcNotice}
+<p>The AP Precalculus formula and reference sheet is available throughout the exam.</p>
+<p>You can go back and forth between questions in this section until time expires.</p>`;
+  }
+
+  const calcNotice = calculatorPolicy === 'required'
+    ? '<p><strong>A graphing calculator is REQUIRED for Part B.</strong></p>'
+    : '<p><strong>NO calculator is allowed for Part A.</strong></p>';
+
+  return `<h1>${sectionTitle} Directions</h1>
+<p style="text-align:center">AP Precalculus</p>
+<p>${sectionTitle} has ${questionCount} multiple-choice questions and lasts ${timeDisplay}.</p>
+${calcNotice}
+<p>The AP Precalculus reference sheet is accessible on screen. Select the best answer from the four choices given.</p>
+<p>You can go back and forth between questions in this section until time expires.</p>`;
+}
+
 const EXAM_DIRECTIONS: Record<string, (options: DirectionOptions) => string> = {
+  /* ── History Exams ──────────────────────────────────────────────── */
+  us_hist: (options) => generateHistoryDirections('AP United States History', options),
+  euro_hist: (options) => generateHistoryDirections('AP European History', options),
+  world_hist: (options) => generateHistoryDirections('AP World History: Modern', options),
+
+  /* ── Government & Social Sciences ────────────────────────────────── */
+  us_gov: (options) => generateGenericDirections(options),
+  comp_gov: (options) => generateGenericDirections(options),
+  human_geo: (options) => generateGenericDirections(options),
+  african_am_studies: (options) => generateGenericDirections(options),
+  psych: (options) => generateGenericDirections(options),
+
+  /* ── STEM & Sciences ──────────────────────────────────────────────── */
+  phys_1: (options) => generatePhysicsAlgebraDirections('AP Physics 1: Algebra-Based', options),
+  phys_2: (options) => generatePhysicsAlgebraDirections('AP Physics 2: Algebra-Based', options),
+  env_sci: (options) => generateGenericDirections(options),
+  stats: (options) => generateGenericDirections(options),
+  precalc: (options) => generatePrecalcDirections(options),
+
+  /* ── Computer Science ────────────────────────────────────────────── */
+  csa: (options) => generateGenericDirections(options),
+  csp: (options) => generateGenericDirections(options),
+
+  /* ── English Language ────────────────────────────────────────────── */
+  lang: (options) => generateGenericDirections(options),
+
+  /* ── Career Kickstart ────────────────────────────────────────────── */
+  business_finance: (options) => generateGenericDirections(options),
+  cybersecurity: (options) => generateGenericDirections(options),
+
+  /* ── Arts ────────────────────────────────────────────────────────── */
+  art_hist: (options) => generateGenericDirections(options),
+
 
   /* ── AP Physics C: Mechanics ─────────────────────────────────────── */
   phys_mech: (options) => generatePhysicsCDirections('Physics C: Mechanics', options),
@@ -158,10 +295,9 @@ const EXAM_DIRECTIONS: Record<string, (options: DirectionOptions) => string> = {
   /* ── AP Microeconomics ───────────────────────────────────────────── */
   econ_micro: (options) => generateEconDirections('Microeconomics', options),
 
-  /* ── AP Calculus AB ─────────────────────────────────────────────── */
+  /* ── AP Calculus ─────────────────────────────────────────────────── */
+  calc: (options) => generateCalculusDirections('Calculus', options),
   calc_ab: (options) => generateCalculusDirections('Calculus AB', options),
-
-  /* ── AP Calculus BC ─────────────────────────────────────────────── */
   calc_bc: (options) => generateCalculusDirections('Calculus BC', options),
 
   /* ── AP Biology ─────────────────────────────────────────────────── */
@@ -250,6 +386,34 @@ ${instructionsText}
   },
   */
 };
+
+// Aliases
+EXAM_DIRECTIONS['apush'] = EXAM_DIRECTIONS['us_hist'];
+EXAM_DIRECTIONS['ap_ush'] = EXAM_DIRECTIONS['us_hist'];
+EXAM_DIRECTIONS['ush'] = EXAM_DIRECTIONS['us_hist'];
+EXAM_DIRECTIONS['euro'] = EXAM_DIRECTIONS['euro_hist'];
+EXAM_DIRECTIONS['ap_euro'] = EXAM_DIRECTIONS['euro_hist'];
+EXAM_DIRECTIONS['world_'] = EXAM_DIRECTIONS['world_hist'];
+EXAM_DIRECTIONS['world'] = EXAM_DIRECTIONS['world_hist'];
+EXAM_DIRECTIONS['ap_world'] = EXAM_DIRECTIONS['world_hist'];
+EXAM_DIRECTIONS['gov'] = EXAM_DIRECTIONS['us_gov'];
+EXAM_DIRECTIONS['hug'] = EXAM_DIRECTIONS['human_geo'];
+EXAM_DIRECTIONS['aas'] = EXAM_DIRECTIONS['african_am_studies'];
+EXAM_DIRECTIONS['macro'] = EXAM_DIRECTIONS['econ_macro'];
+EXAM_DIRECTIONS['micro'] = EXAM_DIRECTIONS['econ_micro'];
+EXAM_DIRECTIONS['mech'] = EXAM_DIRECTIONS['phys_mech'];
+EXAM_DIRECTIONS['em'] = EXAM_DIRECTIONS['phys_em'];
+EXAM_DIRECTIONS['apes'] = EXAM_DIRECTIONS['env_sci'];
+EXAM_DIRECTIONS['physics_1'] = EXAM_DIRECTIONS['phys_1'];
+EXAM_DIRECTIONS['physics_2'] = EXAM_DIRECTIONS['phys_2'];
+EXAM_DIRECTIONS['cs_a'] = EXAM_DIRECTIONS['csa'];
+EXAM_DIRECTIONS['compsci_a'] = EXAM_DIRECTIONS['csa'];
+EXAM_DIRECTIONS['cs_principles'] = EXAM_DIRECTIONS['csp'];
+EXAM_DIRECTIONS['compsci_principles'] = EXAM_DIRECTIONS['csp'];
+EXAM_DIRECTIONS['english_lang'] = EXAM_DIRECTIONS['lang'];
+EXAM_DIRECTIONS['business'] = EXAM_DIRECTIONS['business_finance'];
+EXAM_DIRECTIONS['cyber'] = EXAM_DIRECTIONS['cybersecurity'];
+EXAM_DIRECTIONS['arthistory'] = EXAM_DIRECTIONS['art_hist'];
 
 /* ─── Public API ─────────────────────────────────────────────────── */
 

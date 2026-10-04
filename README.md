@@ -1,73 +1,52 @@
-# React + TypeScript + Vite
+# Bluebook Simulator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A local-first Progressive Web App (PWA) that provides an authentic, 1:1 simulation of the College Board's Bluebook digital testing environment.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Bluebook Simulator allows students and educators to practice official AP exams within the exact interface, constraints, and toolset of the real digital exam application.
 
-## React Compiler
+## Key Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Authentic Bluebook Testing Engine**: Replicates Bluebook's split-pane stimulus layout, collapsible timer (with red 5-minute alert), answer eliminator, question review grid, check-your-work screens, and scheduled break workflows.
+- **26 Supported AP Subjects**: Pre-configured section structures, official module directions, timing constraints, and calculator policies across Humanities, STEM, Social Sciences, Computer Science, and AP Career Kickstart.
+- **Embedded Tools**: Built-in Desmos Graphing & Scientific Calculator overlays and full KaTeX mathematical typesetting.
+- **Active Annotations**: Full text highlighting with persistent notes panel for passage analysis.
+- **Faithful Figures & Media Manifest**: Integrated PDF viewer and interactive figure-cropping utility to capture diagrams directly from source exam PDFs.
+- **AI-Powered Exam Ingestion**: Automated PDF-to-exam conversion via Google Gemini API or copy-paste prompt generator for external LLMs.
+- **Privacy & Offline Persistence**: 100% client-side application using IndexedDB for local storage of in-progress exams, history, and configuration. Zero telemetry, no external database required.
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Framework**: React 19, TypeScript, Vite
+- **Styling**: Pure CSS replicating Bluebook design tokens
+- **Math & Charts**: KaTeX, Function Plot, Mermaid.js
+- **State & Storage**: Zustand, IndexedDB (`idb-keyval`)
+- **PDF & Media**: `pdfjs-dist`, HTML5 Canvas cropper
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Prerequisites
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Node.js (v18+)
+- npm
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/Eggmaster19/BluebookSim.git
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Production Build
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
+npm run preview
 ```
