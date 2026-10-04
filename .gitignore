@@ -27,3 +27,12 @@ dist-ssr
 GEMINI.md
 Screenshots/
 Screenshots
+
+# Archived Foreign Language & Audio Response features
+src/archive/
+src/components/exam/AudioRecorder.tsx
+src/components/exam/AudioResponseBlock.tsx
+src/utils/audioProcessor.ts
+src/utils/whisperManager.ts
+src/workers/whisper.worker.ts
+src/types/lamejs.d.ts

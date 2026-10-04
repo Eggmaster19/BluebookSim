@@ -19,6 +19,7 @@ export interface MCQuestion {
   id: string;
   questionType: 'mcq';
   stimulus?: Stimulus;
+  sharedStimulus?: string;
   text: string;
   optionsStimulus?: Stimulus;
   options: AnswerOption[];
@@ -37,6 +38,7 @@ export interface FRQuestion {
   id: string;
   questionType: 'frq';
   stimulus?: Stimulus;
+  sharedStimulus?: string;
   text: string;       // The introductory setup text
   parts: FRQPart[];
   correctAnswer?: string;
@@ -81,6 +83,7 @@ export interface ExamSection {
   timeMinutes: number;     // The actual time limit applied to the section
   defaultTimeMinutes?: number; // The standard time for this section
   suggestedTimeMinutes?: number; // Suggested time based on number of questions
+  timePerQuestion?: number; // Suggested time per question in minutes
   readingPeriodMinutes?: number; // E.g. 10 minutes reading period for Econ FRQ
   directions: string;      // HTML/text for the directions screen
   questions: Question[];

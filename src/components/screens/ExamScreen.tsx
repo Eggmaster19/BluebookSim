@@ -4,8 +4,10 @@ import { StimulusRenderer } from '../exam/StimulusRenderer';
 import { MCQBlock } from '../exam/MCQBlock';
 import { FRQBlock } from '../exam/FRQBlock';
 import { EssayFRQBlock } from '../exam/EssayFRQBlock';
-import { AudioResponseBlock } from '../exam/AudioResponseBlock';
-import type { FRQuestion, AudioResponseQuestion } from '../../types/ExamSchema';
+// Archived foreign language speaking task block:
+// import { AudioResponseBlock } from '../exam/AudioResponseBlock';
+// import type { AudioResponseQuestion } from '../../types/ExamSchema';
+import type { FRQuestion } from '../../types/ExamSchema';
 import { NotesPanel } from '../highlights/NotesPanel';
 import { HighlightsLayer } from '../highlights/HighlightsLayer';
 
@@ -30,9 +32,10 @@ export const ExamScreen: React.FC = () => {
 
   // Determine which FRQ component to render
   const renderFRQ = () => {
-    if (question.questionType === 'audio-response') {
-      return <AudioResponseBlock question={question as AudioResponseQuestion} />;
-    }
+    // Archived foreign language speaking task:
+    // if (question.questionType === 'audio-response') {
+    //   return <AudioResponseBlock question={question as AudioResponseQuestion} />;
+    // }
     if (isEssayMode) {
       return <EssayFRQBlock question={question as FRQuestion} />;
     }
@@ -54,7 +57,13 @@ export const ExamScreen: React.FC = () => {
             {question.stimulus && (
               <StimulusRenderer
                 stimulus={question.stimulus}
-                introText={isFRQ && !isEssayMode ? question.text : undefined}
+                introText={
+                  isFRQ && !isEssayMode
+                    ? question.text
+                    : ('sharedStimulus' in question && question.sharedStimulus
+                      ? question.sharedStimulus
+                      : undefined)
+                }
                 questionId={question.id}
                 areaId="stimulus"
               />

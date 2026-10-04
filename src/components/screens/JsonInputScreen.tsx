@@ -1,650 +1,495 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useExamStore } from '../../store/examStore';
-import { generateDirections } from '../../data/common/directionsTemplate';
-import { AI_PROMPTS } from '../../data/common/aiPrompts';
-import { SECTION_CONFIGS } from '../../data/common/sectionConfig';
-import type { Exam, Question, MCQuestion, FRQuestion, AudioResponseQuestion, ExamSection } from '../../types/ExamSchema';
+import { buildSubjectPrompt } from '../../utils/promptBuilder';
+import { parseAndRepairExam, EXAM_META } from '../../utils/examParser';
+import { resolveExamMedia, fileToOptimizedDataUrl } from '../../utils/mediaWalker';
+import { PdfViewerCropper } from '../common/PdfViewerCropper';
+import { convertPdfWithGemini } from '../../utils/geminiDirectConverter';
+import { Copy, Check, FileText, Sparkles, Upload, Music, Image as ImageIcon, Plus, Crop as CropIcon } from 'lucide-react';
+import type { Exam } from '../../types/ExamSchema';
 import '../../styles/bluebook.css';
-
-/* ── Exam type metadata for directions generation ── */
-const EXAM_META: Record<string, { label: string; title: string; examType: string; subject: string; studentName: string }> = {
-  calc_ab: { label: 'calc ab', title: 'AP Calculus AB Practice', examType: 'AP', subject: 'Calculus AB', studentName: 'Gottfried Leibniz' },
-  calc_bc: { label: 'calc bc', title: 'AP Calculus BC Practice', examType: 'AP', subject: 'Calculus BC', studentName: 'Isaac Newton' },
-  bio: { label: 'bio', title: 'AP Biology Practice', examType: 'AP', subject: 'Biology', studentName: 'Gregor Mendel' },
-  lit: { label: 'lit', title: 'AP English Literature Practice', examType: 'AP', subject: 'English Literature and Composition', studentName: 'William Shakespeare' },
-  phys_mech: { label: 'mech', title: 'AP Physics C: Mechanics Practice', examType: 'AP', subject: 'Physics C: Mechanics', studentName: 'Einstein' },
-  phys_em: { label: 'e&m', title: 'AP Physics C: E&M Practice', examType: 'AP', subject: 'Physics C: Electricity and Magnetism', studentName: 'James Maxwell' },
-  econ_macro: { label: 'macro', title: 'AP Macroeconomics Practice', examType: 'AP', subject: 'Macroeconomics', studentName: 'John Keynes' },
-  econ_micro: { label: 'micro', title: 'AP Microeconomics Practice', examType: 'AP', subject: 'Microeconomics', studentName: 'Adam Smith' },
-  german: { label: 'german', title: 'AP German Language and Culture Practice', examType: 'AP', subject: 'German Language and Culture', studentName: 'Johann Wolfgang von Goethe' },
-  test: { label: 'test', title: 'Simulator Test', examType: 'TEST', subject: 'Testing', studentName: 'Ben Baumgartner' },
-};
-
-/* ── Helpers ─────────────────────────────────────────────────────── */
-
-interface ParseResult {
-  exam: Exam | null;
-  error: string | null;
-  requiredImages: string[];
-  questionCount: number;
-}
-
-function stripJsonFence(raw: string): string {
-  const trimmed = raw.trim();
-  const match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  return match ? match[1].trim() : trimmed;
-}
-
-function normalizeSectionTag(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim().toUpperCase() : undefined;
-}
-
-function sectionTagList(examType: string): string {
-  return (SECTION_CONFIGS[examType] ?? []).map((s) => `"${s.sectionTag}"`).join(', ');
-}
-
-interface RawOption {
-  id?: string;
-  text?: string;
-  type?: import('../../types/ExamSchema').StimulusType;
-}
-
-interface RawPart {
-  partLabel?: string;
-  part?: string;
-  id?: string;
-  text?: string;
-  type?: import('../../types/ExamSchema').StimulusType;
-  stimulus?: import('../../types/ExamSchema').Stimulus;
-}
-
-interface RawQuestion {
-  id?: string;
-  section?: unknown;
-  type?: string;
-  questionType?: string;
-  parts?: RawPart[];
-  text?: string;
-  stimulus?: import('../../types/ExamSchema').Stimulus;
-  correctAnswer?: string;
-  explanation?: string;
-  prepTimeMinutes?: number;
-  recordingTimeMinutes?: number;
-  interlocutorAudio?: string[];
-  recordingWindows?: number;
-  windowDurationSeconds?: number;
-  options?: RawOption[];
-}
-
-interface RawSection {
-  id?: string;
-  title?: string;
-  section?: string;
-  sectionTag?: string;
-  tag?: string;
-  calculatorAllowed?: boolean;
-  calculatorType?: import('../../types/ExamSchema').CalculatorType;
-  timeMinutes?: number;
-  defaultTimeMinutes?: number;
-  suggestedTimeMinutes?: number;
-  readingPeriodMinutes?: number;
-  breakAfterMinutes?: number | null;
-  frqMode?: 'parts' | 'essay';
-  directions?: string;
-  questions?: RawQuestion[];
-}
-
-interface RawParsedExam {
-  metadata?: {
-    title?: string;
-    examType?: string;
-    subject?: string;
-  };
-  sections?: RawSection[];
-}
-
-function normalizeQuestion(raw: RawQuestion, index: number): Question & { _sectionTag?: string } {
-  const id = raw.id ?? String(index + 1);
-  const sectionTag = normalizeSectionTag(raw.section);
-
-  // Detect FRQ
-  if (raw.type === 'frq' || raw.questionType === 'frq' || raw.parts) {
-    const frq: FRQuestion & { _sectionTag?: string } = {
-      id,
-      questionType: 'frq',
-      text: raw.text ?? '',
-      parts: (raw.parts ?? []).map((p: RawPart) => ({
-        partLabel: p.partLabel ?? p.part ?? p.id ?? '',
-        text: p.text ?? '',
-        ...(p.type && { type: p.type }),
-        ...(p.stimulus && { stimulus: p.stimulus }),
-      })),
-      _sectionTag: sectionTag,
-    };
-    if (raw.stimulus) frq.stimulus = raw.stimulus;
-    if (raw.correctAnswer) frq.correctAnswer = raw.correctAnswer;
-    return frq;
-  }
-
-  // Detect Audio-Response
-  if (raw.type === 'audio-response' || raw.questionType === 'audio-response') {
-    const arq: AudioResponseQuestion & { _sectionTag?: string } = {
-      id,
-      questionType: 'audio-response',
-      text: raw.text ?? '',
-      prepTimeMinutes: raw.prepTimeMinutes,
-      recordingTimeMinutes: raw.recordingTimeMinutes,
-      interlocutorAudio: raw.interlocutorAudio,
-      recordingWindows: raw.recordingWindows,
-      windowDurationSeconds: raw.windowDurationSeconds,
-      _sectionTag: sectionTag,
-    };
-    if (raw.stimulus) arq.stimulus = raw.stimulus;
-    return arq;
-  }
-
-  // Default: MCQ
-  const mcq: MCQuestion & { _sectionTag?: string } = {
-    id,
-    questionType: 'mcq',
-    text: raw.text ?? '',
-    options: (raw.options ?? []).map((o: RawOption) => ({
-      id: o.id ?? '',
-      text: o.text ?? '',
-      ...(o.type && { type: o.type }),
-    })),
-    correctAnswer: raw.correctAnswer ?? '',
-    _sectionTag: sectionTag,
-  };
-  if (raw.stimulus) mcq.stimulus = raw.stimulus;
-  if (raw.explanation) mcq.explanation = raw.explanation;
-  return mcq;
-}
-
-function collectImageFilenames(questions: Question[]): string[] {
-  const images: string[] = [];
-  for (const q of questions) {
-    if (q.stimulus?.type === 'image' && q.stimulus.data) {
-      images.push(q.stimulus.data as string);
-    }
-  }
-  return images;
-}
-
-/**
- * Split a flat array of questions into exam sections using the section config.
- * Uses the required `_sectionTag` on each question to route it to the exact
- * AP section template. The template is the only source of timing, calculator,
- * break, FRQ mode, and directions metadata.
- */
-function splitIntoSections(
-  questions: (Question & { _sectionTag?: string })[],
-  examType: string,
-  meta: typeof EXAM_META[string],
-): ExamSection[] {
-  const config = SECTION_CONFIGS[examType];
-  if (!config) return [];
-
-  const templatesByTag = new Map(config.map((template) => [template.sectionTag.toUpperCase(), template]));
-
-  // Bucket questions by required section tag
-  const tagBuckets: Record<string, Question[]> = {};
-
-  for (let i = 0; i < questions.length; i++) {
-    const q = questions[i];
-    const tag = q._sectionTag;
-    if (!tag) {
-      throw new Error(`Question ${i + 1} is missing required "section". Use ${sectionTagList(examType)} for this exam.`);
-    }
-
-    const template = templatesByTag.get(tag);
-    if (!template) {
-      throw new Error(`Question ${i + 1} has invalid section "${tag}". Use ${sectionTagList(examType)} for this exam.`);
-    }
-
-    const isAudioResponseInFrq = q.questionType === 'audio-response' && template.questionType === 'frq';
-    if (q.questionType !== template.questionType && !isAudioResponseInFrq) {
-      throw new Error(`Question ${i + 1} is tagged "${tag}", but that section expects ${template.questionType.toUpperCase()} questions (got ${q.questionType}).`);
-    }
-
-    // Strip _sectionTag before storing
-    const clean = { ...q };
-    delete clean._sectionTag;
-    if (!tagBuckets[tag]) tagBuckets[tag] = [];
-    tagBuckets[tag].push(clean as Question);
-  }
-
-  // Build ExamSection objects — only include sections that have questions
-  const sections: ExamSection[] = [];
-  for (const template of config) {
-    const sectionQuestions = tagBuckets[template.sectionTag] ?? [];
-    if (sectionQuestions.length === 0) continue;
-
-    // Reassign IDs to be sequentially unique within the section
-    sectionQuestions.forEach((q, idx) => {
-      q.id = `${template.sectionId}-${idx + 1}`;
-    });
-
-    const defaultTimeMinutes = template.timeMinutes;
-    let suggestedTimeMinutes = template.timeMinutes;
-
-    if (template.timePerQuestion) {
-      suggestedTimeMinutes = Math.ceil(sectionQuestions.length * template.timePerQuestion);
-      if (template.readingPeriodMinutes) {
-        suggestedTimeMinutes += template.readingPeriodMinutes;
-      }
-    }
-    
-    const sectionTime = defaultTimeMinutes;
-
-    sections.push({
-      id: template.sectionId,
-      title: template.title,
-      calculatorAllowed: template.calculatorType !== 'none',
-      calculatorType: template.calculatorType,
-      timeMinutes: sectionTime,
-      defaultTimeMinutes: defaultTimeMinutes,
-      suggestedTimeMinutes: suggestedTimeMinutes,
-      readingPeriodMinutes: template.readingPeriodMinutes,
-      breakAfterMinutes: template.breakAfterMinutes,
-      frqMode: template.frqMode,
-      directions: generateDirections({
-        subject: meta.subject,
-        sectionTitle: template.title,
-        questionCount: sectionQuestions.length,
-        timeMinutes: sectionTime,
-        calculatorPolicy: template.calculatorPolicy,
-        isFRQ: template.questionType === 'frq',
-        examType,
-      }),
-      questions: sectionQuestions,
-    });
-  }
-
-  // Fix breakAfterMinutes for the actual last section (in case some sections were empty)
-  if (sections.length > 0) {
-    sections[sections.length - 1] = {
-      ...sections[sections.length - 1],
-      breakAfterMinutes: null,
-    };
-  }
-
-  return sections;
-}
-
-function parseJsonInput(raw: string, examType: string): ParseResult {
-  const empty: ParseResult = { exam: null, error: null, requiredImages: [], questionCount: 0 };
-
-  const jsonText = stripJsonFence(raw);
-  if (!jsonText) return empty;
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonText);
-  } catch (e: unknown) {
-    const errorMsg = e instanceof Error ? e.message : String(e);
-    // Attempt to handle concatenated JSON arrays (e.g., copied back-to-back)
-    try {
-      const fixedRaw = `[${jsonText.replace(/\]\s*\[/g, '],[')}]`;
-      const parsedMultiple: unknown = JSON.parse(fixedRaw);
-      if (Array.isArray(parsedMultiple) && parsedMultiple.every(Array.isArray)) {
-        parsed = parsedMultiple.flat();
-      } else {
-        throw new Error('Not an array of arrays', { cause: e });
-      }
-    } catch {
-      return { ...empty, error: `Invalid JSON: ${errorMsg}` };
-    }
-  }
-
-  const meta = EXAM_META[examType] ?? { label: 'exam', title: 'Practice Exam', examType: 'AP', subject: 'General', studentName: 'Isaac Newton' };
-
-  // ── Case 1: Full Exam object (has metadata + sections) ──
-  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'sections' in parsed) {
-    const parsedExam = parsed as RawParsedExam;
-    try {
-      if (SECTION_CONFIGS[examType]) {
-        const questions = (parsedExam.sections ?? []).flatMap((sec: RawSection, si: number) => {
-          const inheritedSection = normalizeSectionTag(sec.section ?? sec.sectionTag ?? sec.tag);
-          return (sec.questions ?? []).map((q: RawQuestion, qi: number) =>
-            normalizeQuestion(q.section || !inheritedSection ? q : { ...q, section: inheritedSection }, si + qi)
-          );
-        });
-
-        const sections = splitIntoSections(questions, examType, meta);
-        const allQuestions = sections.flatMap((s) => s.questions);
-
-        const exam: Exam = {
-          metadata: {
-            title: parsedExam.metadata?.title ?? meta.title,
-            examType: parsedExam.metadata?.examType ?? meta.examType,
-            subject: parsedExam.metadata?.subject ?? meta.subject,
-          },
-          sections,
-        };
-
-        return {
-          exam,
-          error: null,
-          requiredImages: collectImageFilenames(allQuestions),
-          questionCount: allQuestions.length,
-        };
-      }
-
-      const sections: ExamSection[] = (parsedExam.sections ?? []).map((sec: RawSection, si: number) => {
-        const questions = (sec.questions ?? []).map((q: RawQuestion, qi: number) => normalizeQuestion(q, qi));
-        const calculatorType = sec.calculatorType ?? (sec.calculatorAllowed ? 'scientific' : 'none');
-        return {
-          id: sec.id ?? `section-${si + 1}`,
-          title: sec.title ?? `Section ${si + 1}`,
-          calculatorAllowed: calculatorType !== 'none',
-          calculatorType,
-          timeMinutes: sec.timeMinutes ?? 60,
-          defaultTimeMinutes: sec.defaultTimeMinutes,
-          suggestedTimeMinutes: sec.suggestedTimeMinutes,
-          readingPeriodMinutes: sec.readingPeriodMinutes,
-          breakAfterMinutes: sec.breakAfterMinutes ?? (si < (parsedExam.sections?.length ?? 0) - 1 ? 10 : null),
-          frqMode: sec.frqMode,
-          directions: sec.directions ?? generateDirections({
-            subject: meta.subject,
-            sectionTitle: sec.title ?? `Section ${si + 1}`,
-            questionCount: questions.length,
-            timeMinutes: sec.timeMinutes ?? 60,
-            calculatorPolicy: sec.calculatorAllowed ? 'required' : 'none',
-            isFRQ: questions.some((q: Question) => q.questionType === 'frq'),
-            examType,
-          }),
-          questions,
-        };
-      });
-
-      const allQuestions = sections.flatMap((s) => s.questions);
-
-      const exam: Exam = {
-        metadata: {
-          title: parsedExam.metadata?.title ?? meta.title,
-          examType: parsedExam.metadata?.examType ?? meta.examType,
-          subject: parsedExam.metadata?.subject ?? meta.subject,
-        },
-        sections,
-      };
-
-      return {
-        exam,
-        error: null,
-        requiredImages: collectImageFilenames(allQuestions),
-        questionCount: allQuestions.length,
-      };
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      return { ...empty, error: `Error processing exam structure: ${message}` };
-    }
-  }
-
-  // ── Case 2: Flat array of questions ──
-  if (Array.isArray(parsed)) {
-    if (parsed.length === 0) {
-      return { ...empty, error: 'JSON array is empty — no questions found.' };
-    }
-
-    try {
-      const rawQuestions = parsed as RawQuestion[];
-      const questions = rawQuestions.map((q: RawQuestion, i: number) => normalizeQuestion(q, i));
-
-      // If a section config exists for this exam type, auto-split into proper sections
-      if (SECTION_CONFIGS[examType]) {
-        const sections = splitIntoSections(questions, examType, meta);
-
-        if (sections.length === 0) {
-          return { ...empty, error: 'No questions matched any configured section. Check question types (mcq/frq).' };
-        }
-
-        const allQuestions = sections.flatMap((s) => s.questions);
-
-        const exam: Exam = {
-          metadata: {
-            title: meta.title,
-            examType: meta.examType,
-            subject: meta.subject,
-          },
-          sections,
-        };
-
-        return {
-          exam,
-          error: null,
-          requiredImages: collectImageFilenames(allQuestions),
-          questionCount: allQuestions.length,
-        };
-      }
-
-      // Fallback: no section config (e.g. 'test') — single section
-      const hasFRQ = questions.some((q) => q.questionType === 'frq');
-
-      // Reassign IDs to prevent collisions
-      questions.forEach((q, idx) => {
-        q.id = `section-1-${idx + 1}`;
-      });
-
-      const section: ExamSection = {
-        id: 'section-1',
-        title: `Section I${hasFRQ ? ' - Free Response' : ' - Multiple Choice'}`,
-        calculatorAllowed: false,
-        calculatorType: 'none',
-        timeMinutes: Math.max(30, questions.length * 2), // ~2 min per question, min 30
-        defaultTimeMinutes: 30,
-        suggestedTimeMinutes: Math.max(30, questions.length * 2),
-        breakAfterMinutes: null,
-        directions: generateDirections({
-          subject: meta.subject,
-          sectionTitle: 'Section I',
-          questionCount: questions.length,
-          timeMinutes: Math.max(30, questions.length * 2),
-          calculatorPolicy: 'none',
-          isFRQ: hasFRQ,
-        }),
-        questions: questions.map((q) => {
-          const clean = { ...q };
-          delete clean._sectionTag;
-          return clean as Question;
-        }),
-      };
-
-      const exam: Exam = {
-        metadata: {
-          title: meta.title,
-          examType: meta.examType,
-          subject: meta.subject,
-        },
-        sections: [section],
-      };
-
-      return {
-        exam,
-        error: null,
-        requiredImages: collectImageFilenames(questions),
-        questionCount: questions.length,
-      };
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      return { ...empty, error: `Error processing questions: ${message}` };
-    }
-  }
-
-  return { ...empty, error: 'JSON must be an array of questions or an object with "sections".' };
-}
-
-/* ── Component ───────────────────────────────────────────────────── */
 
 export const JsonInputScreen: React.FC = () => {
   const selectedExamType = useExamStore((s) => s.selectedExamType);
-  const imageBlobs = useExamStore((s) => s.imageBlobs);
-  const setImageBlob = useExamStore((s) => s.setImageBlob);
-  const removeImageBlob = useExamStore((s) => s.removeImageBlob);
   const clearInputState = useExamStore((s) => s.clearInputState);
   const loadExam = useExamStore((s) => s.loadExam);
 
+  // Core state
   const [jsonText, setJsonText] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [copiedFixup, setCopiedFixup] = useState(false);
+
+  // Persistent Media map: Media ID / filename -> Data URL
+  const [mediaMap, setMediaMap] = useState<Record<string, string>>({});
+
+  // PDF Cropper state
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState<boolean>(false);
+  const pdfInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 1-Click Gemini API state
+  const [showGeminiPanel, setShowGeminiPanel] = useState(false);
+  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('bluebook_gemini_key') || '');
+  const [isGeminiProcessing, setIsGeminiProcessing] = useState(false);
+  const [geminiStatus, setGeminiStatus] = useState<string | null>(null);
 
   const examType = selectedExamType ?? 'calc_ab';
   const meta = EXAM_META[examType] ?? EXAM_META['calc_ab'];
-  const aiPrompt = AI_PROMPTS[examType] ?? '';
+  const aiPrompt = useMemo(() => buildSubjectPrompt(examType), [examType]);
 
-  // Parse on every change
-  const parseResult = useMemo(() => parseJsonInput(jsonText, examType), [jsonText, examType]);
-  const { exam, error, requiredImages, questionCount } = parseResult;
+  // Save Gemini API key locally
+  useEffect(() => {
+    if (geminiApiKey) {
+      localStorage.setItem('bluebook_gemini_key', geminiApiKey);
+    }
+  }, [geminiApiKey]);
 
-  const allImagesProvided = requiredImages.length === 0 || requiredImages.every((f) => !!imageBlobs[f]);
-  const canStart = exam !== null && allImagesProvided;
+  // Parse and auto-repair exam JSON whenever jsonText or examType changes
+  const parseResult = useMemo(() => parseAndRepairExam(jsonText, examType), [jsonText, examType]);
+  const { exam, error, fixupPrompt, requiredMedia, questionCount } = parseResult;
+
+  // Check if all media is provided
+  const allMediaProvided = requiredMedia.length === 0 || requiredMedia.every((m) => !!mediaMap[m.id]);
+  const canStart = exam !== null && allMediaProvided && questionCount > 0;
+
+  // Derive active media ID cleanly without setState in effect
+  const activeMediaId = useMemo(() => {
+    if (selectedMediaId && requiredMedia.some((m) => m.id === selectedMediaId)) {
+      return selectedMediaId;
+    }
+    const firstUnset = requiredMedia.find((m) => !mediaMap[m.id]);
+    return firstUnset?.id || requiredMedia[0]?.id || null;
+  }, [selectedMediaId, requiredMedia, mediaMap]);
 
   // ── Handlers ──
 
-  const handleBack = () => {
-    clearInputState();
-  };
-
   const handleCopyPrompt = () => {
     navigator.clipboard.writeText(aiPrompt).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 1800);
     });
   };
 
-  const handleStart = () => {
-    if (!exam) return;
-
-    // Deep clone the exam object to preserve hook immutability
-    const finalExam: Exam = {
-      metadata: { ...exam.metadata },
-      sections: exam.sections.map((section) => ({
-        ...section,
-        questions: section.questions.map((q) => {
-          if (q.stimulus?.type === 'image' && typeof q.stimulus.data === 'string' && imageBlobs[q.stimulus.data]) {
-            return {
-              ...q,
-              stimulus: {
-                ...q.stimulus,
-                data: imageBlobs[q.stimulus.data],
-              },
-            };
-          }
-          return q;
-        }),
-      })),
-    };
-
-    loadExam(finalExam, meta.studentName);
+  const handleCopyFixup = () => {
+    if (!fixupPrompt) return;
+    navigator.clipboard.writeText(fixupPrompt).then(() => {
+      setCopiedFixup(true);
+      setTimeout(() => setCopiedFixup(false), 1800);
+    });
   };
 
-  const handleFileDrop = useCallback(
-    (filename: string, file: File) => {
-      if (!file.type.startsWith('image/')) return;
-      const url = URL.createObjectURL(file);
-      setImageBlob(filename, url);
-    },
-    [setImageBlob],
-  );
+  const handleCropSaved = useCallback((mediaId: string, dataUrl: string) => {
+    setMediaMap((prev) => ({ ...prev, [mediaId]: dataUrl }));
+  }, []);
 
-  const handleClickToPaste = async (filename: string) => {
+  const handleOpenCropper = (mediaId: string) => {
+    setSelectedMediaId(mediaId);
+    setIsCropperOpen(true);
+  };
+
+  const handleRemoveMedia = (mediaId: string) => {
+    setMediaMap((prev) => {
+      const copy = { ...prev };
+      delete copy[mediaId];
+      return copy;
+    });
+  };
+
+  const handleFileUpload = async (mediaId: string, file: File | Blob) => {
     try {
-      const clipboardItems = await navigator.clipboard.read();
-      for (const clipboardItem of clipboardItems) {
-        const imageType = clipboardItem.types.find(type => type.startsWith('image/'));
-        if (imageType) {
-          const blob = await clipboardItem.getType(imageType);
-          const file = new File([blob], filename, { type: imageType });
-          handleFileDrop(filename, file);
-          return;
-        }
+      const dataUrl = await fileToOptimizedDataUrl(file);
+      setMediaMap((prev) => ({ ...prev, [mediaId]: dataUrl }));
+      const nextUnset = requiredMedia.find((m) => m.id !== mediaId && !mediaMap[m.id]);
+      if (nextUnset) {
+        setSelectedMediaId(nextUnset.id);
       }
-      alert('No image found on clipboard.');
     } catch (err) {
-      console.error('Failed to read clipboard contents: ', err);
-      // Fallback message if clipboard permissions are denied or unsupported
-      alert('Failed to read clipboard. Please ensure clipboard permissions are granted.');
+      console.error('Failed to process uploaded file:', err);
+      alert('Could not process this file. Please ensure it is a valid image or audio format.');
     }
   };
 
-  const handlePasteEvent = (filename: string) => (e: React.ClipboardEvent) => {
+  const handleCardPaste = (mediaId: string) => async (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
     for (const item of Array.from(items)) {
       if (item.type.startsWith('image/')) {
         const file = item.getAsFile();
         if (file) {
-          handleFileDrop(filename, file);
           e.preventDefault();
+          e.stopPropagation();
+          await handleFileUpload(mediaId, file);
           return;
         }
       }
     }
   };
 
-  // ── Section summary for status bar ──
-  const sectionSummary = exam && exam.sections.length > 1
-    ? exam.sections.map((s) => `${s.title} (${s.questions.length}q)`).join(' → ')
-    : null;
+  const handleCardDrop = (mediaId: string) => async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer?.files?.[0];
+    if (file && (file.type.startsWith('image/') || file.type.startsWith('audio/'))) {
+      await handleFileUpload(mediaId, file);
+    }
+  };
 
-  // ── Render ──
+  const handlePasteClipboard = async (mediaId: string) => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const clipboardItem of clipboardItems) {
+        const imageType = clipboardItem.types.find((t) => t.startsWith('image/'));
+        if (imageType) {
+          const blob = await clipboardItem.getType(imageType);
+          await handleFileUpload(mediaId, blob);
+          return;
+        }
+      }
+      alert('No image found on your clipboard. Take a screenshot (⌘⇧4 or ⌘⌃⇧4) and try again.');
+    } catch (err) {
+      console.error('Failed to read clipboard contents:', err);
+      alert('To paste directly without browser prompts, click this card and press ⌘V, or drag & drop the image directly.');
+    }
+  };
+
+  // Global Cmd+V / Ctrl+V listener: pastes screenshots directly without permission prompts
+  useEffect(() => {
+    const handleGlobalPaste = async (e: ClipboardEvent) => {
+      const activeTag = document.activeElement?.tagName?.toLowerCase();
+      if (activeTag === 'textarea' || activeTag === 'input') return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            const targetId = (selectedMediaId && !mediaMap[selectedMediaId])
+              ? selectedMediaId
+              : requiredMedia.find((m) => !mediaMap[m.id])?.id || selectedMediaId;
+
+            if (targetId) {
+              try {
+                const dataUrl = await fileToOptimizedDataUrl(file);
+                setMediaMap((prev) => ({ ...prev, [targetId]: dataUrl }));
+                const nextUnset = requiredMedia.find((m) => m.id !== targetId && !mediaMap[m.id]);
+                if (nextUnset) {
+                  setSelectedMediaId(nextUnset.id);
+                }
+              } catch (err) {
+                console.error('Failed to process pasted screenshot:', err);
+              }
+            }
+            return;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, [selectedMediaId, requiredMedia, mediaMap]);
+
+  const handleAppendBatch = () => {
+    const nextText = jsonText.trim()
+      ? `${jsonText.trim()}\n\n// Paste Next Batch Below\n`
+      : '';
+    setJsonText(nextText);
+  };
+
+  const handleGeminiConvert = async () => {
+    if (!pdfFile) {
+      alert('Please upload an Exam PDF first.');
+      return;
+    }
+    if (!geminiApiKey.trim()) {
+      alert('Please enter your Gemini API key.');
+      return;
+    }
+
+    try {
+      setIsGeminiProcessing(true);
+      setGeminiStatus('Initializing Gemini...');
+      const resultJson = await convertPdfWithGemini(pdfFile, geminiApiKey, aiPrompt, (status) => {
+        setGeminiStatus(status);
+      });
+      setJsonText(resultJson);
+      setGeminiStatus('Completed!');
+      setShowGeminiPanel(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Gemini Conversion Error: ${msg}`);
+      setGeminiStatus(null);
+    } finally {
+      setIsGeminiProcessing(false);
+    }
+  };
+
+  const handleStart = () => {
+    if (!exam) return;
+
+    // Resolve all media placeholders across the entire exam tree into persistent data URLs
+    const finalExam: Exam = resolveExamMedia(exam, mediaMap);
+    loadExam(finalExam, meta.studentName);
+  };
 
   return (
     <div className="json-input-screen">
       {/* ── Header ── */}
       <div className="json-input-header">
-        <button className="json-input-back" onClick={handleBack}>
+        <button className="json-input-back" onClick={clearInputState}>
           ← back
         </button>
-        <span className="json-input-exam-label">{meta.label}</span>
+        <span className="json-input-exam-label" style={{ fontWeight: 600, color: '#fff' }}>
+          {meta.title}
+        </span>
         <div className="json-input-header-spacer" />
+
+        {/* 1-Click Gemini Toggle */}
+        <button
+          onClick={() => setShowGeminiPanel((p) => !p)}
+          style={{
+            background: showGeminiPanel ? '#252525' : 'transparent',
+            border: '1px solid #444',
+            color: '#ffd100',
+            borderRadius: '4px',
+            padding: '4px 10px',
+            fontSize: '12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+          }}
+        >
+          <Sparkles size={14} />
+          {showGeminiPanel ? 'Hide 1-Click AI' : '1-Click Gemini API'}
+        </button>
       </div>
 
-      {/* ── Instructions ── */}
-      <div className="json-input-instructions">
-        Take your exam questions (pdf, images, etc) and give them to a good ai along with the prompt below. Paste the result into the left panel, and then paste any images as necessary.
+      {/* ── 1-Click Gemini Panel ── */}
+      {showGeminiPanel && (
+        <div
+          style={{
+            backgroundColor: '#0c0c0c',
+            borderBottom: '1px solid #222',
+            padding: '16px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>
+              Convert directly with your Gemini API Key (No manual copy-pasting required)
+            </span>
+            <span style={{ fontSize: '11px', color: '#888' }}>
+              Your API key stays safe in your local browser storage.
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="password"
+              placeholder="Paste Gemini API Key (AIzaSy...)"
+              value={geminiApiKey}
+              onChange={(e) => setGeminiApiKey(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: '280px',
+                background: '#161616',
+                border: '1px solid #333',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '4px',
+                fontSize: '13px',
+              }}
+            />
+
+            <button
+              disabled={isGeminiProcessing || !pdfFile || !geminiApiKey.trim()}
+              onClick={handleGeminiConvert}
+              style={{
+                background: isGeminiProcessing ? '#444' : '#ffd100',
+                color: '#000',
+                border: 'none',
+                fontWeight: 700,
+                padding: '8px 18px',
+                borderRadius: '4px',
+                cursor: isGeminiProcessing ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px',
+              }}
+            >
+              <Sparkles size={15} />
+              {isGeminiProcessing ? 'Converting PDF...' : 'Auto-Convert PDF to Exam JSON'}
+            </button>
+          </div>
+
+          {geminiStatus && (
+            <div style={{ fontSize: '12px', color: '#ffd100' }}>
+              Status: {geminiStatus}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Instructions Bar ── */}
+      <div className="json-input-instructions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>
+          <strong>How to import:</strong> Copy the prompt below, give it to an AI along with your exam PDF or screenshots, and paste the JSON output here. Then crop or upload any images directly.
+        </span>
       </div>
 
       {/* ── Copy Prompt Bar ── */}
       <button className="json-input-copy-bar" onClick={handleCopyPrompt}>
-        {copied ? 'copied' : 'click to copy ai prompt to clipboard'}
+        {copiedPrompt ? (
+          <span style={{ color: '#4ade80', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Check size={14} /> Copied Prompt to Clipboard!
+          </span>
+        ) : (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Copy size={14} /> Click to Copy {meta.subject} AI Prompt
+          </span>
+        )}
       </button>
 
-      {/* ── Split Content ── */}
+      {/* ── Split Layout ── */}
       <div className="json-input-split">
-        {/* ── Left: JSON Input ── */}
+        {/* ── Left Side: JSON Input ── */}
         <div className="json-input-left">
-          <label className="json-input-label">paste exam json</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <label className="json-input-label" style={{ marginBottom: 0 }}>
+              Paste Exam JSON
+            </label>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleAppendBatch}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #333',
+                  color: '#aaa',
+                  borderRadius: '4px',
+                  padding: '3px 8px',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+                title="Append another batch of questions"
+              >
+                <Plus size={12} /> Add Batch
+              </button>
+
+              {examType === 'test' && (
+                <button
+                  style={{
+                    background: '#222',
+                    border: '1px solid #444',
+                    color: '#fff',
+                    borderRadius: '4px',
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() =>
+                    setJsonText(
+                      JSON.stringify(
+                        {
+                          media: [
+                            {
+                              id: 'IMG_1',
+                              kind: 'image',
+                              page: 1,
+                              crop: 'Diagram of coordinate plane',
+                            },
+                          ],
+                          questions: [
+                            {
+                              id: '1',
+                              section: '1',
+                              stimulus: { type: 'image', data: 'IMG_1' },
+                              text: 'What is shown in the image above?',
+                              options: [
+                                { id: 'A', text: 'A coordinate plane' },
+                                { id: 'B', text: 'A triangle' },
+                              ],
+                              correctAnswer: 'A',
+                            },
+                          ],
+                        },
+                        null,
+                        2
+                      )
+                    )
+                  }
+                >
+                  Load Demo
+                </button>
+              )}
+            </div>
+          </div>
+
           <textarea
             className="json-input-textarea"
             value={jsonText}
             onChange={(e) => setJsonText(e.target.value)}
-            placeholder={'[\n  {\n    "id": "1",\n    "section": "1A",\n    "text": "What is ...",\n    "options": [\n      { "id": "A", "text": "..." },\n      { "id": "B", "text": "..." }\n    ],\n    "correctAnswer": "A"\n  }\n]'}
+            placeholder={'{\n  "media": [\n    { "id": "IMG_1", "page": 2, "crop": "Graph above Q1" }\n  ],\n  "questions": [\n    { "id": "1", "section": "1A", "text": "...", "options": [...] }\n  ]\n}'}
             spellCheck={false}
           />
-          {/* Validation Status */}
+
+          {/* Validation Status & Auto-Repair Feedback */}
           {jsonText.trim() && (
-            <div className={`json-input-status ${error ? 'json-input-status--error' : 'json-input-status--valid'}`}>
-              {error ? (
-                <>
-                  <span className="json-input-status-icon">✗</span>
-                  <span>{error}</span>
-                </>
-              ) : (
-                <>
-                  <span className="json-input-status-icon">✓</span>
-                  <span>
-                    {questionCount} question{questionCount !== 1 ? 's' : ''} parsed
-                    {exam && exam.sections.length > 1 && ` · ${exam.sections.length} sections`}
-                    {requiredImages.length > 0 && ` · ${requiredImages.length} image${requiredImages.length !== 1 ? 's' : ''} required`}
-                  </span>
-                </>
-              )}
+            <div
+              className={`json-input-status ${error ? 'json-input-status--error' : 'json-input-status--valid'}`}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                <span className="json-input-status-icon">{error ? '✗' : '✓'}</span>
+                <span style={{ fontWeight: 600 }}>
+                  {error
+                    ? 'Formatting Issue Detected'
+                    : `${questionCount} Question${questionCount !== 1 ? 's' : ''} Ready · ${exam?.sections.length || 1} Section${(exam?.sections.length || 1) !== 1 ? 's' : ''}`}
+                </span>
+
+                {error && fixupPrompt && (
+                  <button
+                    onClick={handleCopyFixup}
+                    style={{
+                      marginLeft: 'auto',
+                      background: '#222',
+                      border: '1px solid #f87171',
+                      color: '#fff',
+                      borderRadius: '4px',
+                      padding: '3px 8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    {copiedFixup ? <Check size={12} /> : <Copy size={12} />}
+                    {copiedFixup ? 'Copied!' : 'Copy Fix-Up Message for AI'}
+                  </button>
+                )}
+              </div>
+
+              {error && <div style={{ fontSize: '11px', color: '#ffaaaa' }}>{error}</div>}
             </div>
           )}
-          {/* Section breakdown */}
-          {sectionSummary && (
-            <div className="json-input-section-breakdown">
-              {exam!.sections.map((s) => (
+
+          {/* Section Summary */}
+          {exam && exam.sections.length > 0 && (
+            <div className="json-input-section-breakdown" style={{ marginTop: '10px' }}>
+              {exam.sections.map((s) => (
                 <div key={s.id} className="json-input-section-tag">
                   <span className="json-input-section-tag__name">{s.title}</span>
                   <span className="json-input-section-tag__count">{s.questions.length}q</span>
@@ -660,75 +505,386 @@ export const JsonInputScreen: React.FC = () => {
         {/* ── Divider ── */}
         <div className="json-input-divider" />
 
-        {/* ── Right: Image Dropzone ── */}
+        {/* ── Right Side: Media Cropper & Checklist ── */}
         <div className="json-input-right">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <label className="json-input-label" style={{ marginBottom: 0 }}>images</label>
-            {examType === 'test' && (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  className="bb-footer__btn"
-                  style={{ background: '#eee', color: '#333', fontSize: 12, padding: '4px 12px' }}
-                  onClick={() => setJsonText(JSON.stringify([{
-                    id: "1", text: "Test question 1?", options: [{ id: "A", text: "Yes" }, { id: "B", text: "No" }], correctAnswer: "A"
-                  }], null, 2))}
-                >
-                  Load Test
-                </button>
-                <button
-                  className="bb-footer__btn"
-                  style={{ background: '#eee', color: '#333', fontSize: 12, padding: '4px 12px' }}
-                  onClick={() => setJsonText(JSON.stringify([
-                    { id: "1", text: "Test question 1?", options: [{ id: "A", text: "Yes" }, { id: "B", text: "No" }], correctAnswer: "A" },
-                    { id: "2", stimulus: { type: "image", data: "test_image.png" }, text: "What is this image?", options: [{ id: "A", text: "Image" }, { id: "B", text: "Text" }], correctAnswer: "A" }
-                  ], null, 2))}
-                >
-                  + Add Image
-                </button>
-              </div>
-            )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <label className="json-input-label" style={{ marginBottom: 0 }}>
+              Exam Figures & Media ({requiredMedia.filter((m) => !!mediaMap[m.id]).length}/{requiredMedia.length})
+            </label>
           </div>
-          {requiredImages.length === 0 ? (
+
+          {/* Show PDF upload block ONLY after JSON is cleanly parsed and media items are required, and no PDF is uploaded yet */}
+          {exam && requiredMedia.length > 0 && !pdfFile && (
+            <div
+              className="json-input-pdf-upload-card"
+              onClick={() => pdfInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  const file = e.dataTransfer.files[0];
+                  if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+                    setPdfFile(file);
+                  }
+                }
+              }}
+              style={{
+                border: '2px dashed #444',
+                borderRadius: '8px',
+                padding: '24px 16px',
+                textAlign: 'center',
+                backgroundColor: '#111',
+                cursor: 'pointer',
+                marginBottom: '16px',
+                transition: 'border-color 0.2s',
+              }}
+            >
+              <Upload size={28} color="#ffd100" style={{ marginBottom: '8px' }} />
+              <div style={{ color: '#fff', fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>
+                Upload Exam PDF for In-App Cropping
+              </div>
+              <div style={{ color: '#888', fontSize: '12px' }}>
+                Drag & drop your PDF here or click to browse. Enables 1-click "Crop on Page #" navigation.
+              </div>
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept="application/pdf"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setPdfFile(e.target.files[0]);
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Once PDF is uploaded: the big upload block is gone, replaced with this compact status line */}
+          {exam && requiredMedia.length > 0 && pdfFile && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                background: '#161616',
+                borderRadius: '6px',
+                marginBottom: '14px',
+                border: '1px solid #282828',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc', fontSize: '12px' }}>
+                <FileText size={15} color="#ffd100" />
+                <span>PDF loaded: <strong>{pdfFile.name}</strong></span>
+              </div>
+              <button
+                onClick={() => setPdfFile(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#888',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                Change PDF
+              </button>
+            </div>
+          )}
+
+          {/* Media Checklist or Initial Guidance */}
+          {requiredMedia.length === 0 ? (
             <div className="json-input-no-images">
-              {jsonText.trim()
-                ? exam
-                  ? 'No images required for this exam.'
-                  : 'Fix JSON errors to check for images.'
-                : 'Paste JSON to detect required images.'}
+              {jsonText.trim() ? (
+                exam ? (
+                  '✓ All questions parsed. No figures or audio clips required for this exam.'
+                ) : (
+                  'Resolve any JSON formatting issues on the left to detect required figures.'
+                )
+              ) : (
+                <div style={{ textAlign: 'left', lineHeight: '1.6', color: '#aaa', padding: '8px' }}>
+                  <div style={{ color: '#ffd100', fontWeight: 600, fontSize: '14px', marginBottom: '8px' }}>
+                    Step 1: Generate & Paste Exam JSON
+                  </div>
+                  <div>1. Click <strong>"Click to Copy {meta.subject} AI Prompt"</strong> above.</div>
+                  <div>2. Provide the prompt and your exam PDF or screenshots to ChatGPT, Claude, or Gemini.</div>
+                  <div>3. Paste the returned JSON into the box on the left.</div>
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: '#777' }}>
+                    Once questions are parsed, required figures will appear here for 1-click in-app cropping.
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="json-input-checklist">
-              {requiredImages.map((filename) => {
-                const hasImage = !!imageBlobs[filename];
+              {requiredMedia.map((m) => {
+                const isReady = !!mediaMap[m.id];
+                const isActive = activeMediaId === m.id;
+
                 return (
-                  <div key={filename} className="json-input-checklist-item">
+                  <div
+                    key={m.id}
+                    className="json-input-checklist-item"
+                    onClick={() => setSelectedMediaId(m.id)}
+                    onPaste={handleCardPaste(m.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={handleCardDrop(m.id)}
+                    tabIndex={0}
+                    style={{
+                      border: isActive ? '1px solid #ffd100' : '1px solid #222',
+                      borderRadius: '6px',
+                      padding: '12px',
+                      backgroundColor: isActive ? 'rgba(255, 209, 0, 0.03)' : '#0d0d0d',
+                      outline: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
                     <div className="json-input-checklist-header">
-                      <span className={`json-input-checklist-status ${hasImage ? 'json-input-checklist-status--done' : ''}`}>
-                        {hasImage ? '✓' : '○'}
+                      <span className={`json-input-checklist-status ${isReady ? 'json-input-checklist-status--done' : ''}`}>
+                        {isReady ? '✓' : '○'}
                       </span>
-                      <span className="json-input-checklist-filename">{filename}</span>
-                      {hasImage && (
-                        <button className="json-input-checklist-remove" onClick={() => removeImageBlob(filename)}>
+
+                      <span className="json-input-checklist-filename" style={{ fontWeight: 600, color: '#fff' }}>
+                        {m.id}
+                      </span>
+
+                      {m.page && (
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            background: '#222',
+                            color: '#ffd100',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          Page {m.page}
+                        </span>
+                      )}
+
+                      <span style={{ fontSize: '12px', color: '#888', marginLeft: '6px' }}>
+                        {m.context}
+                      </span>
+
+                      {isActive && !isReady && (
+                        <span style={{ fontSize: '11px', color: '#ffd100', marginLeft: 'auto', fontWeight: 500 }}>
+                          Press ⌘V to paste
+                        </span>
+                      )}
+
+                      {isReady && (
+                        <button
+                          className="json-input-checklist-remove"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveMedia(m.id);
+                          }}
+                          title="Remove media"
+                        >
                           ✕
                         </button>
                       )}
                     </div>
-                    {hasImage ? (
-                      <div className="json-input-thumbnail-wrap">
-                        <img src={imageBlobs[filename]} alt={filename} className="json-input-thumbnail" />
-                      </div>
-                    ) : (
-                      <div
-                        className="json-input-dropzone"
-                        onClick={() => handleClickToPaste(filename)}
-                        onPaste={handlePasteEvent(filename)}
-                        tabIndex={0}
-                      >
-                        <span className="json-input-dropzone-text">
-                          click to paste
-                        </span>
+
+                    {m.cropDescription && (
+                      <div style={{ fontSize: '12px', color: '#bbb', fontStyle: 'italic', paddingLeft: '24px', margin: '4px 0 8px 0' }}>
+                        "{m.cropDescription}"
                       </div>
                     )}
+
+                    {/* Media Slot Content */}
+                    <div style={{ paddingLeft: '24px', marginTop: '4px' }}>
+                      {isReady ? (
+                        m.kind === 'audio' ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4ade80', fontSize: '13px' }}>
+                            <Music size={16} /> Audio ready ({m.id})
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="json-input-thumbnail-wrap">
+                              <img src={mediaMap[m.id]} alt={m.id} className="json-input-thumbnail" />
+                            </div>
+                            {pdfFile && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenCropper(m.id);
+                                }}
+                                style={{
+                                  background: '#252525',
+                                  border: '1px solid #444',
+                                  color: '#ffd100',
+                                  borderRadius: '4px',
+                                  padding: '4px 10px',
+                                  fontSize: '11px',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Re-crop
+                              </button>
+                            )}
+                          </div>
+                        )
+                      ) : (
+                        <div>
+                          {m.kind === 'audio' ? (
+                            <label
+                              style={{
+                                background: '#252525',
+                                border: '1px solid #444',
+                                color: '#fff',
+                                borderRadius: '4px',
+                                padding: '6px 12px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Upload size={14} /> Upload Audio File (.mp3/.wav)
+                              <input
+                                type="file"
+                                accept="audio/*"
+                                style={{ display: 'none' }}
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    handleFileUpload(m.id, e.target.files[0]);
+                                  }
+                                }}
+                              />
+                            </label>
+                          ) : pdfFile ? (
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenCropper(m.id);
+                                }}
+                                style={{
+                                  background: '#ffd100',
+                                  border: 'none',
+                                  color: '#000',
+                                  fontWeight: 700,
+                                  borderRadius: '4px',
+                                  padding: '6px 14px',
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                }}
+                              >
+                                <CropIcon size={14} /> Crop on Page {m.page || '...'}
+                              </button>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedMediaId(m.id);
+                                  handlePasteClipboard(m.id);
+                                }}
+                                style={{
+                                  background: '#222',
+                                  border: '1px solid #444',
+                                  color: '#fff',
+                                  borderRadius: '4px',
+                                  padding: '6px 12px',
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                }}
+                                title="Click to paste or press ⌘V"
+                              >
+                                <ImageIcon size={14} /> Paste Screenshot
+                              </button>
+
+                              <label
+                                style={{
+                                  background: '#222',
+                                  border: '1px solid #444',
+                                  color: '#aaa',
+                                  borderRadius: '4px',
+                                  padding: '6px 12px',
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Upload size={14} /> Upload File
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  style={{ display: 'none' }}
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                      handleFileUpload(m.id, e.target.files[0]);
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          ) : (
+                            <div
+                              className="json-input-dropzone"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMediaId(m.id);
+                                handlePasteClipboard(m.id);
+                              }}
+                              onPaste={handleCardPaste(m.id)}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={handleCardDrop(m.id)}
+                              tabIndex={0}
+                              style={{
+                                border: isActive ? '1px dashed #ffd100' : '1px dashed #3a3a3a',
+                                backgroundColor: isActive ? 'rgba(255, 209, 0, 0.04)' : '#141414',
+                                borderRadius: '6px',
+                                padding: '16px 20px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '6px',
+                                outline: 'none',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#fff' }}>
+                                <ImageIcon size={16} color={isActive ? '#ffd100' : '#888'} />
+                                <span><strong>Click to paste</strong> or press <strong>⌘V</strong></span>
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#888', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>drag & drop image, or</span>
+                                <label
+                                  style={{ color: '#ffd100', textDecoration: 'underline', cursor: 'pointer', fontWeight: 500 }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  choose file
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                    onChange={(e) => {
+                                      if (e.target.files && e.target.files[0]) {
+                                        handleFileUpload(m.id, e.target.files[0]);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -737,14 +893,36 @@ export const JsonInputScreen: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Fullscreen In-App PDF Cropper Modal ── */}
+      <PdfViewerCropper
+        isOpen={isCropperOpen}
+        pdfFile={pdfFile}
+        requiredMedia={requiredMedia}
+        activeMediaId={activeMediaId}
+        onSelectMediaId={(id) => setSelectedMediaId(id)}
+        onCropSaved={handleCropSaved}
+        onClose={() => setIsCropperOpen(false)}
+      />
+
       {/* ── Footer ── */}
-      <div className="json-input-footer">
-        {exam && (
-          <span className="json-input-meta">
-            {questionCount} question{questionCount !== 1 ? 's' : ''}
-            {exam.sections.length > 1 && ` · ${exam.sections.length} sections`}
-          </span>
-        )}
+      <div className="json-input-footer" style={{ justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {exam && (
+            <span className="json-input-meta">
+              {questionCount} question{questionCount !== 1 ? 's' : ''}
+              {exam.sections.length > 1 && ` · ${exam.sections.length} sections`}
+            </span>
+          )}
+
+          {requiredMedia.length > 0 && (
+            <span style={{ fontSize: '13px', color: allMediaProvided ? '#4ade80' : '#ffd100' }}>
+              {allMediaProvided
+                ? '✓ All figures attached'
+                : `${requiredMedia.filter((m) => !mediaMap[m.id]).length} figure${requiredMedia.filter((m) => !mediaMap[m.id]).length !== 1 ? 's' : ''} remaining`}
+            </span>
+          )}
+        </div>
+
         <button className="json-input-start" onClick={handleStart} disabled={!canStart}>
           next →
         </button>

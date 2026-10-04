@@ -8,10 +8,13 @@ export const SelectionScreen: React.FC = () => {
   const [selectedExamId, setSelectedExamId] = useState('');
   const [showHistory, setShowHistory] = useState(false);
 
+  const handleSelectChange = (val: string) => {
+    setSelectedExamId(val);
+  };
+
   const handleNext = () => {
     if (selectedExamId === 'previous_exams') {
       setShowHistory(true);
-      setSelectedExamId('');
     } else if (selectedExamId) {
       selectExamType(selectedExamId);
     }
@@ -27,19 +30,21 @@ export const SelectionScreen: React.FC = () => {
         <span>select:</span>
         <select 
           value={selectedExamId} 
-          onChange={(e) => setSelectedExamId(e.target.value)}
+          onChange={(e) => handleSelectChange(e.target.value)}
         >
-          <option value="previous_exams">previous exams</option>
-          <option value="" disabled hidden></option>
+          <option value="" disabled></option>
           <option value="calc_ab">calc ab</option>
           <option value="calc_bc">calc bc</option>
           <option value="bio">bio</option>
           <option value="lit">lit</option>
           <option value="phys_mech">mech</option>
           <option value="phys_em">e&m</option>
+          <option value="econ_macro">macro</option>
           <option value="econ_micro">micro</option>
-          <option value="german">german</option>
+          {/* ARCHIVED: Foreign language exam */}
+          {/* <option value="german">german</option> */}
           <option value="test">test</option>
+          <option value="previous_exams">previous exams</option>
         </select>
         
         <button 

@@ -220,7 +220,7 @@ ${instructionsText}
 <p>You can go back and forth between questions in this part until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
   },
 
-  /* ── AP German Language and Culture ─────────────────────────────── */
+  /* ARCHIVED: Foreign Language (German)
   german: (options) => {
     const { sectionTitle, questionCount, timeMinutes, isFRQ } = options;
 
@@ -248,6 +248,7 @@ ${instructionsText}
 <p>For each question, choose the best answer from the four choices given.</p>
 <p>You can go back and forth between questions in this part until time expires. The clock will turn red when 5 minutes remain—<strong>the proctor will not give you any time updates or warnings.</strong></p>`;
   },
+  */
 };
 
 /* ─── Public API ─────────────────────────────────────────────────── */

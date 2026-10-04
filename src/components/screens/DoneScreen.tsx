@@ -168,7 +168,6 @@ export const DoneScreen: React.FC = () => {
         
         {/* Header */}
         <div className="bb-done-header">
-          <div className="bb-done-header__celebration">Test Complete!</div>
           <h1 className="bb-done-header__title">Practice Results Dashboard</h1>
           <p className="bb-done-header__subtitle">
             Great job, <strong>{studentName}</strong>. Review your performance stats below.
@@ -230,7 +229,7 @@ export const DoneScreen: React.FC = () => {
         {/* Section: Time spent Graph */}
         <div className="bb-dashboard-section">
           <div className="bb-section-header">
-            <h2 className="bb-section-title">Time Spent & Correctness per Question</h2>
+            <h2 className="bb-section-title">Time Spent & Accuracy per Question</h2>
             <div className="bb-legend">
               {hasAnswerKey && (
                 <>
@@ -356,9 +355,6 @@ export const DoneScreen: React.FC = () => {
           <div className="bb-dashboard-section">
             <div className="bb-section-header">
               <h2 className="bb-section-title">MCQ Export</h2>
-              <p className="bb-section-desc">
-                Copy this streamlined response sheet.
-              </p>
             </div>
 
             <div className="bb-export-box">
@@ -387,6 +383,8 @@ export const DoneScreen: React.FC = () => {
               </button>
             </div>
             
+            {/* ARCHIVED: Foreign language speaking task audio recording downloads */}
+            {/*
             {audioFRQs.length > 0 && (
               <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {audioFRQs.map(q => {
@@ -396,7 +394,7 @@ export const DoneScreen: React.FC = () => {
                     <a 
                       key={q.id}
                       href={audioUrl}
-                      download={`AP_German_${q.displayLabel.replace(/\s+/g, '_')}.mp3`}
+                      download={`AP_Audio_${q.displayLabel.replace(/\s+/g, '_')}.mp3`}
                       className="bb-done-btn bb-done-btn--primary"
                       style={{ fontSize: '12px', padding: '6px 12px' }}
                     >
@@ -406,6 +404,7 @@ export const DoneScreen: React.FC = () => {
                 })}
               </div>
             )}
+            */}
           </div>
         )}
 

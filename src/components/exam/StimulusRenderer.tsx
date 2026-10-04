@@ -23,10 +23,11 @@ interface HighlightContext {
 
 export const StimulusRenderer: React.FC<StimulusRendererProps> = ({ stimulus, introText, questionId, areaId = 'stimulus' }) => {
   const context = questionId ? { questionId, areaId } : undefined;
+  const showIntro = introText && (stimulus.type !== 'text' || stimulus.data !== introText);
 
   return (
     <div className="bb-stimulus">
-      {introText && (
+      {showIntro && (
         <div className="bb-stimulus__intro">
           {context ? (
             <HighlightedText text={introText} questionId={context.questionId} areaId={`${context.areaId}-intro`} />
@@ -88,8 +89,30 @@ export function renderStimulus(stimulus: Stimulus, context?: HighlightContext) {
     case 'svg':
       return <SVGRenderer data={stimulus.data as string} />;
 
-    case 'image':
-      return <ImageStimulus src={stimulus.data as string} />;
+    case 'image': {
+      const src = stimulus.data as string;
+      if (!src || src.startsWith('IMG_') || src.startsWith('IMAGE_')) {
+        return (
+          <div style={{
+            padding: '24px',
+            border: '2px dashed #444',
+            borderRadius: '8px',
+            textAlign: 'center',
+            color: '#aaa',
+            margin: '16px 0',
+            background: 'rgba(255, 255, 255, 0.03)'
+          }}>
+            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px', color: '#fff' }}>
+              🖼️ Figure Placeholder ({src || 'Image'})
+            </div>
+            <div style={{ fontSize: '12px', color: '#888' }}>
+              No image was attached for this question.
+            </div>
+          </div>
+        );
+      }
+      return <ImageStimulus src={src} />;
+    }
 
     default:
       return (

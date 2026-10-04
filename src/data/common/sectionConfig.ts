@@ -236,6 +236,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       readingPeriodMinutes: 10,
     },
   ],
+  /* ARCHIVED: Foreign Language (German)
   german: [
     {
       sectionId: 'sec-1',
@@ -260,6 +261,7 @@ export const SECTION_CONFIGS: Record<string, SectionTemplate[]> = {
       sectionTag: '2',
     },
   ],
+  */
 };
 
 // Inject Calculus BC configuration (same as Calculus AB)

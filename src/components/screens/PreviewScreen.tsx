@@ -1,11 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useExamStore } from '../../store/examStore';
+import type { ExamSection } from '../../types/ExamSchema';
 import '../../styles/bluebook.css';
 
 export const PreviewScreen: React.FC = () => {
   const exam = useExamStore((s) => s.exam);
   const updateSectionTime = useExamStore((s) => s.updateSectionTime);
   const startExamFromPreview = useExamStore((s) => s.startExamFromPreview);
+
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+
+  const handleCommitTime = (idx: number) => {
+    const parsed = parseInt(editValue, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      updateSectionTime(idx, parsed);
+    }
+    setEditingIndex(null);
+  };
+
+  const getMinutesPerQuestion = (sec: ExamSection) => {
+    if (sec.timePerQuestion !== undefined) {
+      return Number(sec.timePerQuestion.toFixed(2));
+    }
+    const qCount = sec.questions.length;
+    const standardTime = sec.defaultTimeMinutes || sec.timeMinutes;
+    if (qCount > 0) {
+      return Number((standardTime / qCount).toFixed(1));
+    }
+    return 1.5;
+  };
 
   if (!exam) return null;
 
@@ -57,21 +81,67 @@ export const PreviewScreen: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <label className="json-input-label" style={{ marginBottom: '4px', color: '#aaa' }}>Time Limit</label>
-                      {section.suggestedTimeMinutes && (
-                        <div style={{ fontSize: '12px', color: '#888' }}>
-                          Suggested: {section.suggestedTimeMinutes} mins
-                          {section.defaultTimeMinutes && ` (Standard: ${section.defaultTimeMinutes} mins)`}
-                        </div>
-                      )}
+                      <div style={{ fontSize: '12px', color: '#888' }}>
+                        Suggested: {section.suggestedTimeMinutes ?? section.timeMinutes} mins (Standard: {section.defaultTimeMinutes ?? 90} min, {getMinutesPerQuestion(section)} minutes per question.)
+                      </div>
                     </div>
-                    <span style={{ fontSize: '16px', color: '#fff', fontWeight: 500, alignSelf: 'flex-end', paddingBottom: '2px' }}>
-                      {section.timeMinutes} minutes
-                    </span>
+                    {editingIndex === index ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-end', paddingBottom: '2px' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          max="600"
+                          value={editValue}
+                          autoFocus
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => handleCommitTime(index)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleCommitTime(index);
+                            if (e.key === 'Escape') setEditingIndex(null);
+                          }}
+                          style={{
+                            width: '68px',
+                            padding: '3px 8px',
+                            background: '#111',
+                            border: '1px solid #4ade80',
+                            borderRadius: '4px',
+                            color: '#fff',
+                            fontSize: '15px',
+                            fontWeight: 600,
+                            textAlign: 'center',
+                            outline: 'none',
+                          }}
+                        />
+                        <span style={{ fontSize: '14px', color: '#aaa' }}>minutes</span>
+                      </div>
+                    ) : (
+                      <span 
+                        onClick={() => {
+                          setEditingIndex(index);
+                          setEditValue(String(section.timeMinutes));
+                        }}
+                        title="Click to type a custom time limit"
+                        style={{ 
+                          fontSize: '16px', 
+                          color: '#fff', 
+                          fontWeight: 500, 
+                          alignSelf: 'flex-end', 
+                          paddingBottom: '2px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          borderBottom: '1px dashed #666',
+                        }}
+                      >
+                        <strong style={{ fontWeight: 600 }}>{section.timeMinutes}</strong> minutes
+                      </span>
+                    )}
                   </div>
                   <input 
                     type="range" 
                     min="1" 
-                    max="180" 
+                    max={Math.max(180, section.timeMinutes)} 
                     step="1"
                     value={section.timeMinutes} 
                     onChange={(e) => updateSectionTime(index, parseInt(e.target.value, 10))}
@@ -83,7 +153,7 @@ export const PreviewScreen: React.FC = () => {
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#555' }}>
                     <span>1 min</span>
-                    <span>180 min</span>
+                    <span>{Math.max(180, section.timeMinutes)} min</span>
                   </div>
                 </div>
 

@@ -1241,11 +1241,6 @@ html, body, #root {
   align-items: center;
   justify-content: center;
   text-align: center;
-  transition: border-color 0.2s;
-}
-
-.bb-metric-card:hover {
-  border-color: #444444;
 }
 
 .bb-metric-card--accent {
