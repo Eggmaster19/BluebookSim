@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useHistoryStore } from '../../store/historyStore';
 import { useExamStore } from '../../store/examStore';
 import type { ExamHistoryEntry } from '../../store/historyStore';
 
 export const HistoryScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const history = useHistoryStore((s) => s.history);
+  const sortedHistory = useMemo(() => {
+    return [...history].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  }, [history]);
   const deleteFromHistory = useHistoryStore((s) => s.deleteFromHistory);
   const clearAllHistory = useHistoryStore((s) => s.clearAllHistory);
   const loadHistoryEntry = useExamStore((s) => s.loadHistoryEntry);
@@ -146,7 +149,7 @@ export const HistoryScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </tr>
               </thead>
               <tbody>
-                {history.map((entry) => (
+                {sortedHistory.map((entry) => (
                   <tr key={entry.id}>
                     <td className="bb-history-cell-date">
                       {formatDate(entry.timestamp)}

@@ -3,7 +3,7 @@ export type StimulusType = 'text' | 'katex' | 'function-plot' | 'mermaid' | 'svg
 
 export interface Stimulus {
   type: StimulusType;
-  data: string | Record<string, unknown>;
+  data: string | string[] | Record<string, unknown>;
   maxPlays?: number; // Optional limit for audio plays
 }
 

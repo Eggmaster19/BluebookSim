@@ -170,7 +170,7 @@ export const DoneScreen: React.FC = () => {
         <div className="bb-done-header">
           <h1 className="bb-done-header__title">Practice Results Dashboard</h1>
           <p className="bb-done-header__subtitle">
-            Great job, <strong>{studentName}</strong>. Review your performance stats below.
+            Great job, {studentName}. Review your performance stats below.
           </p>
         </div>
 

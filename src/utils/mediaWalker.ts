@@ -100,8 +100,16 @@ export function walkExamMedia(
     if (q.stimulus) {
       if (typeof q.stimulus === 'string') {
         addMedia(q.stimulus, isAudioReference(q.stimulus) ? 'audio' : 'image', `Q${qNum} Stimulus`, qNum);
-      } else if (q.stimulus.type === 'image' && typeof q.stimulus.data === 'string') {
-        addMedia(q.stimulus.data, 'image', `Q${qNum} Stimulus`, qNum);
+      } else if (q.stimulus.type === 'image') {
+        if (typeof q.stimulus.data === 'string') {
+          addMedia(q.stimulus.data, 'image', `Q${qNum} Stimulus`, qNum);
+        } else if (Array.isArray(q.stimulus.data)) {
+          q.stimulus.data.forEach((imgId, idx) => {
+            if (typeof imgId === 'string') {
+              addMedia(imgId, 'image', `Q${qNum} Figure ${idx + 1}`, qNum);
+            }
+          });
+        }
       } else if (q.stimulus.type === 'audio' && typeof q.stimulus.data === 'string') {
         addMedia(q.stimulus.data, 'audio', `Q${qNum} Audio Stimulus`, qNum);
       }
@@ -194,6 +202,15 @@ export function resolveExamMedia(
       if (resolved) {
         return { ...stim, data: resolved };
       }
+    }
+    if ((stim.type === 'image' || stim.type === 'audio') && Array.isArray(stim.data)) {
+      const resolvedList = stim.data.map((item) => {
+        if (typeof item === 'string') {
+          return mediaMap[item.trim()] || item;
+        }
+        return item;
+      });
+      return { ...stim, data: resolvedList as string[] };
     }
     return stim;
   };

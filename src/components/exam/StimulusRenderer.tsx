@@ -75,7 +75,7 @@ export function renderStimulus(stimulus: Stimulus, context?: HighlightContext) {
     }
 
     case 'table':
-      return renderTable(stimulus.data);
+      return renderTable(stimulus.data as string | Record<string, unknown>);
 
     case 'audio':
       return <AudioPlayer src={stimulus.data as string} maxPlays={stimulus.maxPlays} />;
@@ -84,34 +84,46 @@ export function renderStimulus(stimulus: Stimulus, context?: HighlightContext) {
       return <MermaidRenderer chart={stimulus.data as string} />;
 
     case 'function-plot':
-      return <FunctionPlotRenderer data={stimulus.data} />;
+      return <FunctionPlotRenderer data={stimulus.data as string | Record<string, unknown>} />;
 
     case 'svg':
       return <SVGRenderer data={stimulus.data as string} />;
 
     case 'image': {
-      const src = stimulus.data as string;
-      if (!src || src.startsWith('IMG_') || src.startsWith('IMAGE_')) {
-        return (
-          <div style={{
-            padding: '24px',
-            border: '2px dashed #444',
-            borderRadius: '8px',
-            textAlign: 'center',
-            color: '#aaa',
-            margin: '16px 0',
-            background: 'rgba(255, 255, 255, 0.03)'
-          }}>
-            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px', color: '#fff' }}>
-              🖼️ Figure Placeholder ({src || 'Image'})
-            </div>
-            <div style={{ fontSize: '12px', color: '#888' }}>
-              No image was attached for this question.
-            </div>
-          </div>
-        );
-      }
-      return <ImageStimulus src={src} />;
+      const srcList = Array.isArray(stimulus.data)
+        ? (stimulus.data as string[])
+        : [stimulus.data as string];
+
+      return (
+        <div className="bb-stimulus__image-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {srcList.map((src, i) => {
+            if (!src || src.startsWith('IMG_') || src.startsWith('IMAGE_')) {
+              return (
+                <div
+                  key={i}
+                  style={{
+                    padding: '24px',
+                    border: '2px dashed #444',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    color: '#aaa',
+                    margin: '12px 0',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px', color: '#fff' }}>
+                    🖼️ Figure Placeholder ({src || 'Image'})
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#888' }}>
+                    No image was attached for this placeholder.
+                  </div>
+                </div>
+              );
+            }
+            return <ImageStimulus key={i} src={src} />;
+          })}
+        </div>
+      );
     }
 
     default:

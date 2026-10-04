@@ -30,9 +30,9 @@ export async function convertPdfWithGemini(
     reader.readAsDataURL(pdfFile);
   });
 
-  onProgress?.('Sending PDF to Gemini (this may take 15-30 seconds)...');
+  onProgress?.('Sending PDF to Gemini (this may take 15-45 seconds)...');
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey.trim()}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey.trim()}`;
 
   const payload = {
     contents: [
@@ -53,6 +53,9 @@ export async function convertPdfWithGemini(
     generationConfig: {
       responseMimeType: 'application/json',
       temperature: 0.1,
+      thinkingConfig: {
+        thinkingLevel: 'high',
+      },
     },
   };
 
@@ -86,7 +89,14 @@ export async function convertPdfWithGemini(
     throw new Error('Gemini stopped output due to copyright/recitation detection. The prompt now includes [PartyMor] tags to bypass this filter.');
   }
 
-  const text = candidate?.content?.parts?.[0]?.text;
+  // When thinking is enabled, candidate.content.parts may contain internal thoughts ({ thought: true })
+  // Extract the actual final output part
+  const parts = candidate?.content?.parts;
+  const responsePart = Array.isArray(parts)
+    ? parts.find((p: { text?: string; thought?: boolean }) => !p.thought && typeof p.text === 'string' && p.text.trim()) || parts[parts.length - 1]
+    : undefined;
+
+  const text = responsePart?.text;
 
   if (!text) {
     throw new Error('Gemini returned an empty response. Check if the PDF has text/images.');

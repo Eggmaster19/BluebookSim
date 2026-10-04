@@ -72,8 +72,9 @@ $$f(x) = \\begin{cases} x^2 & x \\ge 0 \\\\ -x & x < 0 \\end{cases}$$`,
   - "2" — Section II: Free Response`,
     specialRules: [
       'For data tables, use type "table" with headers and rows arrays: "stimulus": { "type": "table", "data": { "headers": ["Group", "Temp (°C)", "Rate"], "rows": [["1", "20", "4.2"], ["2", "30", "8.9"]] } }.',
-      'For long experiment descriptions or shared passages, use type "text" and separate paragraphs with <br><br>. Duplicate shared stimuli across all linked questions.',
+      'SHARED PASSAGES & EXPERIMENT DESCRIPTIONS: When questions refer to a shared passage (e.g. "Questions 12–17 refer to the following information"): Put the passage text into "sharedStimulus" on every question in that range (use <br><br> between paragraphs). Put ONLY the specific question into "text". If figures accompany the passage, assign their IMG_# to "stimulus". The simulator displays the shared passage AND figures together on the left split pane across all linked questions!',
       'All biological diagrams, gel electrophoresis results, pedigrees, graphs, and microscopy photos MUST be image placeholders (e.g. IMG_1).',
+      'CRITICAL: If an experiment passage has multiple figures (e.g. Figure 1 AND Figure 2), create SEPARATE placeholders (e.g. IMG_5 for Figure 1, IMG_6 for Figure 2). NEVER merge Figure 1 and Figure 2 into one placeholder!',
     ],
     sampleQuestion: `{
   "id": "1",
@@ -285,14 +286,37 @@ CRITICAL REQUIREMENTS:
 - TRANSCRIBE ALL QUESTIONS IN FULL: You must transcribe EVERY question from the exam (e.g. all 60 questions for AP Biology, all 45 questions for AP Calculus). Do NOT stop after 10 or 15 questions! Do not summarize, skip, truncate, or omit any questions.
 - ACT AS A LITERAL TRANSCRIPTION ENGINE: Transcribe all text character-for-character without altering, rephrasing, or omitting words.
 
-1. FAITHFUL-FIGURES POLICY (NEVER REDRAW FIGURES):
+1. FAITHFUL-FIGURES POLICY (NEVER REDRAW FIGURES & NEVER COMBINE FIGURES):
    - Transcribe text, equations, and data tables.
    - DO NOT attempt to draw or recreate graphs, diagrams, curves, or visual figures with code, ASCII, or text.
-   - Instead, whenever a question has an accompanying figure, graph, or diagram, insert an image placeholder:
-     "stimulus": { "type": "image", "data": "IMG_1" }
+   - SEPARATE PLACEHOLDERS FOR EVERY NUMBERED/TITLED FIGURE:
+     * NEVER combine multiple figures (e.g. Figure 1 AND Figure 2, Graph A AND Graph B, Pedigree AND Chart) into a single IMG_# crop placeholder!
+     * Every individual distinct figure, graph, chart, diagram, or photo MUST have its own unique IMG_# placeholder in the "media" manifest (e.g. IMG_5 for Figure 1, and IMG_6 for Figure 2).
+     * If a passage or page has multiple figures (e.g. Figure 1 and Figure 2 on Page 10), create TWO separate entries in the "media" manifest:
+       {
+         "id": "IMG_5",
+         "kind": "image",
+         "page": 10,
+         "sourceQuestion": "12-14",
+         "crop": "Figure 1: Line graphs of DMSP concentration in juvenile and adult corals"
+       },
+       {
+         "id": "IMG_6",
+         "kind": "image",
+         "page": 10,
+         "sourceQuestion": "15-17",
+         "crop": "Figure 2: Graphs of symbiont density and photosynthetic yield in adult corals"
+       }
+     * Assign the specific IMG_# to each question based on which figure the question references (e.g. Q12 references Figure 1 -> "data": "IMG_5"; Q15 references Figure 2 -> "data": "IMG_6").
+     * If a question references both figures, provide both in an array: "stimulus": { "type": "image", "data": ["IMG_5", "IMG_6"] }.
    - If the answer options themselves are graphs or diagrams, provide a single image placeholder:
      "optionsStimulus": { "type": "image", "data": "IMG_2" } (and leave option texts empty or simple letters).
-   - In the "media" manifest array at the top of the JSON, document every IMG_# with its page number and a brief crop description!
+   - SHARED PASSAGES & DESCRIPTIONS:
+     * When questions share a passage, scenario, or experiment description (e.g. "Questions 12–17 refer to the following information"):
+     * Place the full passage text in "sharedStimulus" on every question in the set (separate paragraphs with <br><br>).
+     * Put ONLY the specific question prompt into "text" (e.g. "Which of the following best explains...?"). Do NOT duplicate the entire passage into "text".
+     * If the passage has figures, assign their IMG_# to "stimulus". The simulator keeps the shared passage and figures visible on the left pane across all linked questions!
+   - In the "media" manifest array at the top of the JSON, document EVERY IMG_# with its page number and a brief, specific crop description!
 
 2. NUMBERING & SECTION TAGGING:
    - Number questions sequentially starting from 1 (id: "1", "2", "3", ...).

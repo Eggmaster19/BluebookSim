@@ -26,7 +26,7 @@ export const ExamScreen: React.FC = () => {
 
   if (!question) return <div style={{ padding: '32px', textAlign: 'center' }}>No question found.</div>;
 
-  const hasStimulus = !!question.stimulus;
+  const hasStimulus = !!question.stimulus || ('sharedStimulus' in question && !!question.sharedStimulus);
   const isFRQ = question.questionType === 'frq';
   const isEssayMode = section?.frqMode === 'essay';
 
@@ -54,20 +54,18 @@ export const ExamScreen: React.FC = () => {
                 On exam day, you'll write your answer in the free-response booklet.
               </div>
             )}
-            {question.stimulus && (
-              <StimulusRenderer
-                stimulus={question.stimulus}
-                introText={
-                  isFRQ && !isEssayMode
-                    ? question.text
-                    : ('sharedStimulus' in question && question.sharedStimulus
-                      ? question.sharedStimulus
-                      : undefined)
-                }
-                questionId={question.id}
-                areaId="stimulus"
-              />
-            )}
+            <StimulusRenderer
+              stimulus={question.stimulus || { type: 'text', data: ('sharedStimulus' in question ? question.sharedStimulus : '') as string }}
+              introText={
+                isFRQ && !isEssayMode
+                  ? question.text
+                  : ('sharedStimulus' in question && question.sharedStimulus
+                    ? question.sharedStimulus
+                    : undefined)
+              }
+              questionId={question.id}
+              areaId="stimulus"
+            />
           </div>
 
           <div className="bb-split__divider" />

@@ -5,7 +5,7 @@ import { parseAndRepairExam, EXAM_META } from '../../utils/examParser';
 import { resolveExamMedia, fileToOptimizedDataUrl } from '../../utils/mediaWalker';
 import { PdfViewerCropper } from '../common/PdfViewerCropper';
 import { convertPdfWithGemini } from '../../utils/geminiDirectConverter';
-import { Copy, Check, FileText, Sparkles, Upload, Music, Image as ImageIcon, Plus, Crop as CropIcon } from 'lucide-react';
+import { Copy, Check, FileText, Sparkles, Upload, Music, Image as ImageIcon, Crop as CropIcon } from 'lucide-react';
 import type { Exam } from '../../types/ExamSchema';
 import '../../styles/bluebook.css';
 
@@ -193,12 +193,6 @@ export const JsonInputScreen: React.FC = () => {
     return () => window.removeEventListener('paste', handleGlobalPaste);
   }, [selectedMediaId, requiredMedia, mediaMap]);
 
-  const handleAppendBatch = () => {
-    const nextText = jsonText.trim()
-      ? `${jsonText.trim()}\n\n// Paste Next Batch Below\n`
-      : '';
-    setJsonText(nextText);
-  };
 
   const handleGeminiConvert = async () => {
     if (!pdfFile) {
@@ -248,7 +242,7 @@ export const JsonInputScreen: React.FC = () => {
         </span>
         <div className="json-input-header-spacer" />
 
-        {/* 1-Click Gemini Toggle */}
+        {/* Gemini API Toggle */}
         <button
           onClick={() => setShowGeminiPanel((p) => !p)}
           style={{
@@ -265,11 +259,11 @@ export const JsonInputScreen: React.FC = () => {
           }}
         >
           <Sparkles size={14} />
-          {showGeminiPanel ? 'Hide 1-Click AI' : '1-Click Gemini API'}
+          {showGeminiPanel ? 'close gemini api' : 'gemini api'}
         </button>
       </div>
 
-      {/* ── 1-Click Gemini Panel ── */}
+      {/* ── Gemini API Panel ── */}
       {showGeminiPanel && (
         <div
           style={{
@@ -278,61 +272,152 @@ export const JsonInputScreen: React.FC = () => {
             padding: '16px 24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '14px',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>
-              Convert directly with your Gemini API Key (No manual copy-pasting required)
-            </span>
-            <span style={{ fontSize: '11px', color: '#888' }}>
-              Your API key stays safe in your local browser storage.
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={16} color="#ffd100" />
+              <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>
+                Gemini API Auto-Conversion
+              </span>
+            </div>
+            <span style={{ fontSize: '11px', color: '#4ade80' }}>
+              Your API key and PDF remain strictly local in your browser. The key is remembered across sessions.
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <input
-              type="password"
-              placeholder="Paste Gemini API Key (AIzaSy...)"
-              value={geminiApiKey}
-              onChange={(e) => setGeminiApiKey(e.target.value)}
-              style={{
-                flex: 1,
-                minWidth: '280px',
-                background: '#161616',
-                border: '1px solid #333',
-                color: '#fff',
-                padding: '8px 12px',
-                borderRadius: '4px',
-                fontSize: '13px',
-              }}
-            />
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '16px',
+              alignItems: 'end',
+            }}
+          >
+            {/* Spot 1: Upload Exam PDF */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#ccc', marginBottom: '6px' }}>
+                1. Upload Exam PDF
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="file"
+                  id="gemini-pdf-input"
+                  accept="application/pdf,.pdf"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setPdfFile(file);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('gemini-pdf-input')?.click()}
+                  style={{
+                    background: '#1a1a1a',
+                    border: '1px solid #444',
+                    color: '#fff',
+                    borderRadius: '4px',
+                    padding: '8px 14px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Upload size={14} />
+                  {pdfFile ? 'Change PDF' : 'Select Exam PDF'}
+                </button>
+                {pdfFile ? (
+                  <span style={{ fontSize: '12px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Check size={14} />
+                    <strong>{pdfFile.name}</strong> ({Math.round(pdfFile.size / 1024)} KB)
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '12px', color: '#777' }}>
+                    No PDF chosen yet
+                  </span>
+                )}
+              </div>
+            </div>
 
-            <button
-              disabled={isGeminiProcessing || !pdfFile || !geminiApiKey.trim()}
-              onClick={handleGeminiConvert}
-              style={{
-                background: isGeminiProcessing ? '#444' : '#ffd100',
-                color: '#000',
-                border: 'none',
-                fontWeight: 700,
-                padding: '8px 18px',
-                borderRadius: '4px',
-                cursor: isGeminiProcessing ? 'wait' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '13px',
-              }}
-            >
-              <Sparkles size={15} />
-              {isGeminiProcessing ? 'Converting PDF...' : 'Auto-Convert PDF to Exam JSON'}
-            </button>
+            {/* Spot 2: Gemini API Key */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#ccc' }}>
+                  2. Gemini API Key
+                </label>
+                {geminiApiKey && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeminiApiKey('');
+                      localStorage.removeItem('bluebook_gemini_key');
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#888',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: 0,
+                    }}
+                  >
+                    Clear key
+                  </button>
+                )}
+              </div>
+              <input
+                type="password"
+                placeholder="Paste Gemini API Key (AIzaSy...)"
+                value={geminiApiKey}
+                onChange={(e) => setGeminiApiKey(e.target.value)}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  background: '#161616',
+                  border: '1px solid #333',
+                  color: '#fff',
+                  padding: '8px 12px',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                }}
+              />
+            </div>
+
+            {/* Spot 3: Convert Action Button */}
+            <div>
+              <button
+                disabled={isGeminiProcessing || !pdfFile || !geminiApiKey.trim()}
+                onClick={handleGeminiConvert}
+                style={{
+                  width: '100%',
+                  background: isGeminiProcessing ? '#444' : (!pdfFile || !geminiApiKey.trim() ? '#333' : '#ffd100'),
+                  color: !pdfFile || !geminiApiKey.trim() || isGeminiProcessing ? '#888' : '#000',
+                  border: 'none',
+                  fontWeight: 700,
+                  padding: '9px 18px',
+                  borderRadius: '4px',
+                  cursor: isGeminiProcessing ? 'wait' : (!pdfFile || !geminiApiKey.trim() ? 'not-allowed' : 'pointer'),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  fontSize: '13px',
+                }}
+              >
+                <Sparkles size={15} />
+                {isGeminiProcessing ? 'Converting PDF with Gemini...' : 'Convert PDF with Gemini'}
+              </button>
+            </div>
           </div>
 
           {geminiStatus && (
-            <div style={{ fontSize: '12px', color: '#ffd100' }}>
-              Status: {geminiStatus}
+            <div style={{ fontSize: '12px', color: '#ffd100', background: 'rgba(255, 209, 0, 0.08)', padding: '6px 10px', borderRadius: '4px' }}>
+              {geminiStatus}
             </div>
           )}
         </div>
@@ -363,75 +448,104 @@ export const JsonInputScreen: React.FC = () => {
         {/* ── Left Side: JSON Input ── */}
         <div className="json-input-left">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <label className="json-input-label" style={{ marginBottom: 0 }}>
-              Paste Exam JSON
-            </label>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+              <label className="json-input-label" style={{ marginBottom: 0 }}>
+                Paste Exam JSON
+              </label>
+              <span style={{ fontSize: '11px', color: '#888' }}>
+                You can paste multiple batches of JSON below
+              </span>
+            </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={handleAppendBatch}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #333',
-                  color: '#aaa',
-                  borderRadius: '4px',
-                  padding: '3px 8px',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-                title="Append another batch of questions"
-              >
-                <Plus size={12} /> Add Batch
-              </button>
 
               {examType === 'test' && (
-                <button
-                  style={{
-                    background: '#222',
-                    border: '1px solid #444',
-                    color: '#fff',
-                    borderRadius: '4px',
-                    padding: '3px 8px',
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() =>
-                    setJsonText(
-                      JSON.stringify(
-                        {
-                          media: [
-                            {
-                              id: 'IMG_1',
-                              kind: 'image',
-                              page: 1,
-                              crop: 'Diagram of coordinate plane',
-                            },
-                          ],
-                          questions: [
-                            {
-                              id: '1',
-                              section: '1',
-                              stimulus: { type: 'image', data: 'IMG_1' },
-                              text: 'What is shown in the image above?',
-                              options: [
-                                { id: 'A', text: 'A coordinate plane' },
-                                { id: 'B', text: 'A triangle' },
-                              ],
-                              correctAnswer: 'A',
-                            },
-                          ],
-                        },
-                        null,
-                        2
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    style={{
+                      background: '#222',
+                      border: '1px solid #444',
+                      color: '#fff',
+                      borderRadius: '4px',
+                      padding: '3px 8px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() =>
+                      setJsonText(
+                        JSON.stringify(
+                          {
+                            media: [],
+                            questions: [
+                              {
+                                id: '1',
+                                section: '1',
+                                text: 'test',
+                                options: [
+                                  { id: 'A', text: 'true' },
+                                  { id: 'B', text: 'false' },
+                                  { id: 'C', text: 'false' },
+                                  { id: 'D', text: 'false' },
+                                ],
+                                correctAnswer: 'A',
+                              },
+                            ],
+                          },
+                          null,
+                          2
+                        )
                       )
-                    )
-                  }
-                >
-                  Load Demo
-                </button>
+                    }
+                  >
+                    Load Test
+                  </button>
+                  <button
+                    style={{
+                      background: '#222',
+                      border: '1px solid #444',
+                      color: '#fff',
+                      borderRadius: '4px',
+                      padding: '3px 8px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() =>
+                      setJsonText(
+                        JSON.stringify(
+                          {
+                            media: [
+                              {
+                                id: 'IMG_1',
+                                kind: 'image',
+                                page: 1,
+                                crop: 'Diagram of coordinate plane',
+                              },
+                            ],
+                            questions: [
+                              {
+                                id: '1',
+                                section: '1',
+                                stimulus: { type: 'image', data: 'IMG_1' },
+                                text: 'test',
+                                options: [
+                                  { id: 'A', text: 'true' },
+                                  { id: 'B', text: 'false' },
+                                  { id: 'C', text: 'false' },
+                                  { id: 'D', text: 'false' },
+                                ],
+                                correctAnswer: 'A',
+                              },
+                            ],
+                          },
+                          null,
+                          2
+                        )
+                      )
+                    }
+                  >
+                    Load Test (with image)
+                  </button>
+                </div>
               )}
             </div>
           </div>

@@ -61,8 +61,27 @@ export function cleanJsonString(raw: string): string {
         output += ch;
         isEscaped = false;
       } else if (ch === '\\') {
-        output += ch;
-        isEscaped = true;
+        const remainder = text.slice(i);
+        // Check if backslash is followed by a LaTeX command colliding with standard JSON escapes (\t, \f, \b, \n, \r)
+        const isLatexCollision =
+          /^\\(?:t(?:ext|imes|heta|au|an|o|extbf|textit|tilde|triangle|tag|top|tiny|tfrac|therefore|tanh|thickapprox)|f(?:rac|forall|flat|frown|footnote|fbox|figure)|b(?:eta|begin|bar|binom|bot|bullet|bm|bf|bold|mathbf|boldsymbol|big|bigg|bmatrix|bmod)|n(?:eq|nabla|nu|not|neg|newline|normalsize|natural|nearrow|nwarrow)|r(?:ightarrow|ight|ho|angle|ring|rm|rfloor|rceil|rbrace))\b/i.test(remainder);
+
+        // Check if followed by invalid unicode escape (e.g. \uparrow instead of \uXXXX)
+        const isInvalidUnicode =
+          next === 'u' && !/^[0-9a-fA-F]{4}/.test(text.slice(i + 2, i + 6));
+
+        // Check if followed by any character that is not a valid JSON escape
+        const isNonJsonEscape =
+          (next !== undefined && !['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'].includes(next)) || isInvalidUnicode;
+
+        if (isLatexCollision || isNonJsonEscape) {
+          // Double the backslash so JSON.parse receives a literal '\'
+          output += '\\\\';
+          // isEscaped remains false so next character is handled as normal text
+        } else {
+          output += ch;
+          isEscaped = true;
+        }
       } else if (ch === '"') {
         output += ch;
         inString = false;
@@ -73,7 +92,12 @@ export function cleanJsonString(raw: string): string {
       } else if (ch === '\r') {
         // Skip carriage return inside strings
       } else if (ch === '\t') {
-        output += '\\t';
+        // If literal tab character is followed by 'ext', 'imes', etc., it was likely an unescaped \text corrupted into a tab
+        if (/^(?:ext|imes|heta|au|an|o|extbf|textit)\b/i.test(text.slice(i + 1))) {
+          output += '\\\\t';
+        } else {
+          output += '\\t';
+        }
       } else {
         output += ch;
       }
@@ -394,16 +418,52 @@ export function normalizeStimulus(rawStim: unknown): Stimulus | undefined {
       data: trimmed,
     };
   }
+  if (Array.isArray(rawStim)) {
+    const list: string[] = [];
+    for (const item of rawStim) {
+      if (typeof item === 'string' && item.trim()) {
+        list.push(item.trim());
+      } else if (item && typeof item === 'object') {
+        const itemObj = item as Record<string, unknown>;
+        const d = itemObj.data ?? itemObj.src ?? itemObj.image ?? itemObj.img;
+        if (typeof d === 'string' && d.trim()) {
+          list.push(d.trim());
+        }
+      }
+    }
+    if (list.length > 0) {
+      return {
+        type: 'image',
+        data: list.length === 1 ? list[0] : list,
+      };
+    }
+    return undefined;
+  }
   if (typeof rawStim === 'object') {
     const obj = rawStim as Record<string, unknown>;
     if (obj.type && obj.data !== undefined) {
+      if (Array.isArray(obj.data)) {
+        const cleanArr = obj.data.map(String).map((s) => s.trim()).filter(Boolean);
+        return {
+          type: obj.type as Stimulus['type'],
+          data: cleanArr.length === 1 ? cleanArr[0] : cleanArr,
+          ...(typeof obj.maxPlays === 'number' && { maxPlays: obj.maxPlays }),
+        };
+      }
       return {
         type: obj.type as Stimulus['type'],
         data: obj.data as string | Record<string, unknown>,
         ...(typeof obj.maxPlays === 'number' && { maxPlays: obj.maxPlays }),
       };
     }
-    const imgData = obj.image ?? obj.src ?? obj.img ?? obj.url;
+    const imgData = obj.image ?? obj.src ?? obj.img ?? obj.url ?? obj.images;
+    if (Array.isArray(imgData)) {
+      const cleanArr = imgData.map(String).map((s) => s.trim()).filter(Boolean);
+      return {
+        type: 'image',
+        data: cleanArr.length === 1 ? cleanArr[0] : cleanArr,
+      };
+    }
     if (typeof imgData === 'string' && imgData.trim()) {
       return { type: 'image', data: imgData.trim() };
     }
@@ -685,6 +745,135 @@ function organizeIntoSections(
 }
 
 /**
+ * Detects shared passages, experiment descriptions, and reading sets in question texts
+ * (e.g. "Questions 12-17 refer to the following information...") or from media manifests,
+ * extracts the passage into `sharedStimulus`, cleans the question prompt in `q.text`,
+ * and propagates `sharedStimulus` across all questions in the group so that the passage
+ * persists on the left stimulus pane throughout the entire question group.
+ */
+function extractAndPropagateSharedStimuli(
+  questions: (Question & { _sectionTag?: string })[],
+  manifest: MediaManifestItem[]
+): void {
+  // 1. Scan for explicit passage headers embedded in question texts
+  // e.g. "Questions 12-17 refer to...", "Directions: Questions 5–8 refer to...", "Questions 40 to 44 are based on..."
+  const passageHeaderRegex =
+    /(?:(?:Directions:?\s*)?(?:Questions?|Q)\s*(\d+)\s*(?:-|–|—|to|through)\s*(\d+)[^.<>\n]*?(?:refer to|are based on|pertain to)[^.<>\n]*[.:]?|(?:refer to the following[^.<>\n]*?(?:for\s+)?(?:questions?|q)\s*(\d+)\s*(?:-|–|—|to|through)\s*(\d+)[^.<>\n]*[.:]?)|(?:(?:Questions?|Q)\s*(\d+)\s*(?:-|–|—|to|through)\s*(\d+)\s*[:.-]\s*(?:Read the following|The following|Refer to)))/i;
+
+  for (let idx = 0; idx < questions.length; idx++) {
+    const q = questions[idx];
+    if (!q || !q.text) continue;
+
+    const match = q.text.match(passageHeaderRegex);
+    if (match) {
+      const rawStart = match[1] || match[3] || match[5];
+      const rawEnd = match[2] || match[4] || match[6];
+      const startQ = parseInt(rawStart, 10);
+      const endQ = parseInt(rawEnd, 10);
+      const minQ = Math.min(startQ, endQ);
+      const maxQ = Math.max(startQ, endQ);
+
+      // Separate passage prefix from the final question prompt
+      let passageText: string;
+      let promptText: string;
+
+      const paragraphs = q.text.split(/(?:<br\s*\/?>\s*){2,}|\n\s*\n/i).map((p) => p.trim()).filter(Boolean);
+      if (paragraphs.length >= 2) {
+        promptText = paragraphs[paragraphs.length - 1];
+        passageText = paragraphs.slice(0, -1).join('<br><br>');
+      } else {
+        const lines = q.text.split(/<br\s*\/?>|\n/i).map((l) => l.trim()).filter(Boolean);
+        if (lines.length >= 2) {
+          promptText = lines[lines.length - 1];
+          passageText = lines.slice(0, -1).join('<br>');
+        } else {
+          const sentenceSplit = q.text.match(/^([\s\S]*?[.:])\s*(((?:Which of the following|Based on|What |How |Why |In which|Explain|According to|If |Assuming ).+?\?))$/i);
+          if (sentenceSplit) {
+            passageText = sentenceSplit[1].trim();
+            promptText = sentenceSplit[2].trim();
+          } else {
+            passageText = q.text.trim();
+            promptText = q.text.trim();
+          }
+        }
+      }
+
+      if (passageText) {
+        if ('sharedStimulus' in q) {
+          q.sharedStimulus = passageText;
+        }
+        q.text = promptText;
+
+        // Propagate to all questions in the range minQ..maxQ
+        for (let targetIdx = 0; targetIdx < questions.length; targetIdx++) {
+          const targetQ = questions[targetIdx];
+          const parsedId = parseInt(targetQ.id, 10);
+          const qNum = !isNaN(parsedId) ? parsedId : targetIdx + 1;
+
+          if (qNum >= minQ && qNum <= maxQ) {
+            if ('sharedStimulus' in targetQ && (!targetQ.sharedStimulus || !targetQ.sharedStimulus.trim())) {
+              targetQ.sharedStimulus = passageText;
+            }
+            if (!targetQ.stimulus) {
+              targetQ.stimulus = { type: 'text', data: passageText };
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Propagate sharedStimulus across question ranges defined in media manifest (e.g. sourceQuestion: "12-17" or "5-8")
+  for (const item of manifest) {
+    if (!item || !item.sourceQuestion) continue;
+    const qNumbers = parseQuestionRange(item.sourceQuestion);
+    if (qNumbers.length <= 1) continue;
+
+    const matchingQuestions = questions.filter((q, idx) => {
+      const parsedNum = parseInt(q.id, 10);
+      const qNum = !isNaN(parsedNum) ? parsedNum : idx + 1;
+      return qNumbers.includes(qNum);
+    });
+
+    if (matchingQuestions.length === 0) continue;
+
+    // Find any existing sharedStimulus in the group
+    const groupSharedText = matchingQuestions.find(
+      (q) => 'sharedStimulus' in q && typeof q.sharedStimulus === 'string' && q.sharedStimulus.trim()
+    );
+    let sharedTextStr = groupSharedText && 'sharedStimulus' in groupSharedText ? groupSharedText.sharedStimulus : undefined;
+
+    // If none found, check if the first question contains an introductory passage
+    if (!sharedTextStr && matchingQuestions.length > 0) {
+      const firstQ = matchingQuestions[0];
+      const isIntroductory = /(?:refer to the following|in an experiment|in an investigation|researchers? (?:studied|investigated|analyzed|tested)|a study was conducted|a student)/i.test(firstQ.text);
+      const paragraphs = firstQ.text.split(/(?:<br\s*\/?>\s*){2,}|\n\s*\n/i).map((p) => p.trim()).filter(Boolean);
+
+      if (isIntroductory && paragraphs.length >= 2) {
+        const promptText = paragraphs[paragraphs.length - 1];
+        const passageText = paragraphs.slice(0, -1).join('<br><br>');
+        if ('sharedStimulus' in firstQ) {
+          firstQ.sharedStimulus = passageText;
+        }
+        firstQ.text = promptText;
+        sharedTextStr = passageText;
+      }
+    }
+
+    if (sharedTextStr) {
+      for (const q of matchingQuestions) {
+        if ('sharedStimulus' in q && (!q.sharedStimulus || !q.sharedStimulus.trim())) {
+          q.sharedStimulus = sharedTextStr;
+        }
+        if (!q.stimulus) {
+          q.stimulus = { type: 'text', data: sharedTextStr };
+        }
+      }
+    }
+  }
+}
+
+/**
  * Main auto-repair parser function.
  * Accepts any JSON format (flat array, manifest object, or multi-batch text),
  * repairs common syntax anomalies, extracts all media, and organizes into an Exam.
@@ -767,8 +956,38 @@ export function parseAndRepairExam(rawInput: string, examType: string): ExamPars
   // Normalize questions
   const normalizedQuestions = rawQuestions.map((q, idx) => normalizeQuestionObject(q, idx));
 
-  // Auto-propagate persistent media & shared stimuli across question ranges (e.g. "sourceQuestion": "5-8")
+  // Auto-detect and split compound figure crops (e.g. "Figure 1 ... and Figure 2 ...") into distinct media items
+  const finalManifest: MediaManifestItem[] = [];
+  const splitMap = new Map<string, { id1: string; id2: string }>();
+
   for (const item of mediaManifest) {
+    if (item.crop) {
+      const splitRegex = /(Fig(?:ure|\.)?\s*\d+\b[\s\S]*?)(?:,\s*and\s+|\s+and\s+)(Fig(?:ure|\.)?\s*\d+\b[\s\S]*)/i;
+      const match = item.crop.match(splitRegex);
+      if (match) {
+        const item1: MediaManifestItem = {
+          ...item,
+          id: item.id,
+          crop: match[1].trim(),
+        };
+        const item2: MediaManifestItem = {
+          ...item,
+          id: `${item.id}_B`,
+          crop: match[2].trim(),
+        };
+        finalManifest.push(item1, item2);
+        splitMap.set(item.id, { id1: item1.id, id2: item2.id });
+        continue;
+      }
+    }
+    finalManifest.push(item);
+  }
+
+  // Auto-extract and propagate shared passages across grouped questions
+  extractAndPropagateSharedStimuli(normalizedQuestions, finalManifest);
+
+  // Auto-propagate persistent media & shared stimuli across question ranges (e.g. "sourceQuestion": "5-8")
+  for (const item of finalManifest) {
     if (!item || !item.id || item.sourceQuestion === undefined) continue;
     const qNumbers = parseQuestionRange(item.sourceQuestion);
     if (qNumbers.length === 0) continue;
@@ -785,20 +1004,56 @@ export function parseAndRepairExam(rawInput: string, examType: string): ExamPars
     const sharedTextStr = sharedText && 'sharedStimulus' in sharedText ? sharedText.sharedStimulus : undefined;
 
     for (const q of matchingQuestions) {
-      if (!q.stimulus) {
-        q.stimulus = {
-          type: item.kind || 'image',
-          data: item.id.trim(),
-        };
-      } else if (q.stimulus.type === 'text') {
-        if ('sharedStimulus' in q && !q.sharedStimulus) {
-          q.sharedStimulus = typeof q.stimulus.data === 'string' ? q.stimulus.data : JSON.stringify(q.stimulus.data);
+      let shouldAttach = true;
+      if (item.id.endsWith('_B') && item.crop) {
+        const figNumMatch = item.crop.match(/Fig(?:ure|\.)?\s*(\d+)/i);
+        const figNum = figNumMatch ? figNumMatch[1] : null;
+        if (figNum) {
+          const otherFigMatch = q.text.match(/Fig(?:ure|\.)?\s*(\d+)/i);
+          if (otherFigMatch && otherFigMatch[1] !== figNum) {
+            shouldAttach = false;
+          }
         }
-        q.stimulus = {
-          type: item.kind || 'image',
-          data: item.id.trim(),
-        };
+      } else {
+        const splitInfo = splitMap.get(item.id);
+        if (splitInfo) {
+          const fig2Item = finalManifest.find((m) => m.id === splitInfo.id2);
+          const fig2NumMatch = fig2Item?.crop?.match(/Fig(?:ure|\.)?\s*(\d+)/i);
+          const fig2Num = fig2NumMatch ? fig2NumMatch[1] : '2';
+          const fig1NumMatch = item.crop?.match(/Fig(?:ure|\.)?\s*(\d+)/i);
+          const fig1Num = fig1NumMatch ? fig1NumMatch[1] : '1';
+          if (
+            new RegExp(`Fig(?:ure|\\.)?\\s*${fig2Num}\\b`, 'i').test(q.text) &&
+            !new RegExp(`Fig(?:ure|\\.)?\\s*${fig1Num}\\b`, 'i').test(q.text)
+          ) {
+            shouldAttach = false;
+          }
+        }
       }
+
+      if (shouldAttach) {
+        const attachId = item.id.trim();
+        if (!q.stimulus) {
+          q.stimulus = {
+            type: item.kind || 'image',
+            data: attachId,
+          };
+        } else if (q.stimulus.type === 'text') {
+          if ('sharedStimulus' in q && !q.sharedStimulus) {
+            q.sharedStimulus = typeof q.stimulus.data === 'string' ? q.stimulus.data : JSON.stringify(q.stimulus.data);
+          }
+          q.stimulus = {
+            type: item.kind || 'image',
+            data: attachId,
+          };
+        } else if (q.stimulus.type === 'image') {
+          const currentData = Array.isArray(q.stimulus.data) ? q.stimulus.data : [q.stimulus.data as string];
+          if (!currentData.includes(attachId)) {
+            q.stimulus.data = [...currentData, attachId];
+          }
+        }
+      }
+
       if ('sharedStimulus' in q && !q.sharedStimulus && sharedTextStr) {
         q.sharedStimulus = sharedTextStr;
       }
@@ -809,7 +1064,7 @@ export function parseAndRepairExam(rawInput: string, examType: string): ExamPars
   const { sections, errors: sectionErrors } = organizeIntoSections(normalizedQuestions, examType, meta);
 
   // Extract all media requirements
-  const requiredMedia = walkExamMedia(normalizedQuestions, mediaManifest);
+  const requiredMedia = walkExamMedia(normalizedQuestions, finalManifest);
 
   if (sectionErrors.length > 0) {
     const fixup = `The following questions have issues with section formatting:\n${sectionErrors
@@ -820,7 +1075,7 @@ export function parseAndRepairExam(rawInput: string, examType: string): ExamPars
     return {
       ...emptyResult,
       questions: normalizedQuestions,
-      mediaManifest,
+      mediaManifest: finalManifest,
       requiredMedia,
       error: sectionErrors[0],
       errors: sectionErrors,
@@ -841,7 +1096,7 @@ export function parseAndRepairExam(rawInput: string, examType: string): ExamPars
   return {
     exam,
     questions: normalizedQuestions,
-    mediaManifest,
+    mediaManifest: finalManifest,
     requiredMedia,
     error: null,
     errors: [],

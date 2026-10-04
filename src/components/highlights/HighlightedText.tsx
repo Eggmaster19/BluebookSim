@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import katex from 'katex';
 import { useExamStore } from '../../store/examStore';
 import type { HighlightNote } from '../../types/ExamSchema';
+import { MATH_REGEX, formatMarkdown } from '../../utils/textFormatting';
 
 interface HighlightedTextProps {
   text: string;
@@ -52,15 +53,29 @@ export const HighlightedText: React.FC<HighlightedTextProps> = ({
 
 function renderMixedText(text: string, highlights: HighlightNote[], displayMath: boolean): React.ReactNode[] {
   if (!text || typeof text !== 'string') return [];
-  const parts = text.split(/(\$\$[^$]+\$\$)/g);
+  const parts = text.split(MATH_REGEX);
 
   return parts.map((part, index) => {
-    if (part.startsWith('$$') && part.endsWith('$$')) {
-      const math = part.slice(2, -2);
+    if (!part) return null;
+
+    const isDoubleDollar = part.startsWith('$$') && part.endsWith('$$') && part.length >= 4;
+    const isBracket = part.startsWith('\\[') && part.endsWith('\\]') && part.length >= 4;
+    const isParen = part.startsWith('\\(') && part.endsWith('\\)') && part.length >= 4;
+    const isSingleDollar = part.startsWith('$') && part.endsWith('$') && part.length >= 2 && !isDoubleDollar;
+
+    if (isDoubleDollar || isBracket || isParen || isSingleDollar) {
+      const isDisplay = isDoubleDollar || isBracket || displayMath;
+      let math: string;
+      if (isDoubleDollar || isBracket || isParen) {
+        math = part.slice(2, -2);
+      } else {
+        math = part.slice(1, -1);
+      }
+
       let html: string;
       try {
         html = katex.renderToString(math, {
-          displayMode: displayMath,
+          displayMode: isDisplay,
           throwOnError: false,
           errorColor: '#cc0000',
         });
@@ -72,7 +87,8 @@ function renderMixedText(text: string, highlights: HighlightNote[], displayMath:
       return <span key={`math-${index}`} dangerouslySetInnerHTML={{ __html: html }} />;
     }
 
-    return <React.Fragment key={`text-${index}`}>{renderHtmlFragment(part, highlights, `part-${index}`)}</React.Fragment>;
+    const formatted = formatMarkdown(part);
+    return <React.Fragment key={`text-${index}`}>{renderHtmlFragment(formatted, highlights, `part-${index}`)}</React.Fragment>;
   });
 }
 
@@ -103,7 +119,7 @@ function renderNode(node: Node, highlights: HighlightNote[], key: string): React
   );
 
   if (tagName === 'br') return <br key={key} />;
-  if (tagName === 'em') return <em key={key}>{children}</em>;
+  if (tagName === 'em' || tagName === 'i') return <em key={key}>{children}</em>;
   if (tagName === 'strong' || tagName === 'b') return <strong key={key}>{children}</strong>;
   if (tagName === 'sup') return <sup key={key}>{children}</sup>;
   if (tagName === 'sub') return <sub key={key}>{children}</sub>;

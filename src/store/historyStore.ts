@@ -42,8 +42,8 @@ export const useHistoryStore = create<HistoryState>()(
       saveToHistory: (entry) =>
         set((state) => ({
           history: [
-            ...state.history.filter((e) => e.id !== entry.id),
             entry,
+            ...state.history.filter((e) => e.id !== entry.id),
           ],
         })),
 
