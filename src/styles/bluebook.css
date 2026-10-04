@@ -1660,6 +1660,121 @@ html, body, #root {
   font-size: 15px;
 }
 
+/* Custom Select Dropdown with Stationary Top and Fixed Scrollbar */
+.custom-select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.custom-select-trigger {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid #333333;
+  padding: 4px 34px 4px 10px;
+  font-size: 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 180px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  position: relative;
+  transition: border-color 0.15s ease;
+}
+
+.custom-select-trigger:focus,
+.custom-select-trigger.is-open {
+  border-color: #666666;
+  outline: none;
+}
+
+.custom-select-arrow {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: #888888;
+  transition: transform 0.15s ease;
+}
+
+.custom-select-trigger.is-open .custom-select-arrow {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 240px;
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #181818;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  padding: 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #555555 transparent;
+}
+
+.custom-select-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-thumb {
+  background: #555555;
+  border-radius: 3px;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #777777;
+}
+
+.custom-select-group {
+  margin-bottom: 6px;
+}
+
+.custom-select-group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #777777;
+  padding: 6px 12px 2px 12px;
+  user-select: none;
+}
+
+.custom-select-option {
+  padding: 6px 14px;
+  font-size: 16px;
+  color: #dddddd;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 1px 6px;
+  user-select: none;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.custom-select-option:hover,
+.custom-select-option.is-highlighted {
+  background-color: #2a2a2a;
+  color: #ffffff;
+}
+
+.custom-select-option.is-selected {
+  background-color: #007aff;
+  color: #ffffff;
+  font-weight: 500;
+}
+
 .next-btn {
   background: transparent;
   color: #ffffff;
